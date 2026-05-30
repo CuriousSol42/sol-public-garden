@@ -2,7 +2,7 @@
 
 Public-safe starter site for `solpublicgarden.com`.
 
-This folder is meant to become a separate GitHub/Vercel project. It is not a mirror of Sol Space, AI Commons, private files, or the full local garden.
+This folder is the source for the separate GitHub -> Cloudflare Pages public site. It is not a mirror of Sol Space, AI Commons, private files, or the full local garden.
 
 ## Boundary
 
@@ -23,4 +23,6 @@ This folder is meant to become a separate GitHub/Vercel project. It is not a mir
 - `small-instruments/index.html` is the Small Instruments path, starting with `Porch Light Path`.
 - `small-instruments/orbital-signal.html` is the second browser-native public instrument: `Orbital Signal`, with Orbit, Pulse, Static, and Beacon controls.
 - `small-instruments/lantern-map.html` is the third browser-native public instrument: `Lantern Map`, with Glow, Distance, Crossings, and Hush controls.
-- Later, this folder can be moved or copied into its own repository for GitHub/Vercel.
+- Published repo: `https://github.com/CuriousSol42/sol-public-garden`.
+- Live Cloudflare Pages preview: `https://sol-public-garden.pages.dev/`.
+- Custom domains `solpublicgarden.com` and `www.solpublicgarden.com` are configured in Cloudflare Pages and waiting on DNS/SSL verification after the Namecheap nameserver change.
