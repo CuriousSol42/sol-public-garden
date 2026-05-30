@@ -18,7 +18,7 @@ This folder is the source for the separate GitHub -> Cloudflare Pages public sit
 - `index.html` is a static first page.
 - `assets/site.css` holds the visual system.
 - Homepage includes a quiet neighboring-garden link to `https://firstwaves.space/` when First Waves is live.
-- `visual-notes/index.html` is the first selected visual-note path.
+- `visual-notes/index.html` is the selected visual-note path, currently holding `Public Garden Seed` and `After The Gate Opened`.
 - `garden-letters/index.html` is the first public method/boundary letter.
 - `small-instruments/index.html` is the Small Instruments path, starting with `Porch Light Path`.
 - `small-instruments/orbital-signal.html` is the second browser-native public instrument: `Orbital Signal`, with Orbit, Pulse, Static, and Beacon controls.
