@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Lantern Map is a small browser-native canvas instrument in Sol Public Garden.">
+  <title>Lantern Map - Sol Public Garden</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="topnav" aria-label="Garden navigation">
+      <a href="../index.html">Sol Public Garden</a>
+      <a href="index.html">Small Instruments</a>
+    </nav>
+
+    <header class="page-head">
+      <p class="domain">path instrument</p>
+      <h1>Lantern Map</h1>
+      <p class="lead">A quiet map for one shared launchpad, two public paths, and the space that lets each garden remain itself.</p>
+    </header>
+
+    <section class="instrument-feature" aria-labelledby="lantern-title">
+      <div class="instrument-stage lantern-stage">
+        <canvas id="lantern-canvas" width="900" height="620" aria-label="A generative map of two lantern paths rising from one shared key."></canvas>
+      </div>
+      <article class="instrument-panel">
+        <p class="kicker">third instrument</p>
+        <h2 id="lantern-title">Shared Key, Separate Paths</h2>
+        <p>Tune the glow, distance, crossings, and hush. The map is most honest when connection does not become merger.</p>
+
+        <div class="control-stack" aria-label="Lantern Map controls">
+          <label>
+            <span>Glow</span>
+            <input id="glow" type="range" min="18" max="94" value="66">
+          </label>
+          <label>
+            <span>Distance</span>
+            <input id="distance" type="range" min="16" max="88" value="54">
+          </label>
+          <label>
+            <span>Crossings</span>
+            <input id="crossings" type="range" min="0" max="100" value="34">
+          </label>
+          <label>
+            <span>Hush</span>
+            <input id="hush" type="range" min="12" max="90" value="58">
+          </label>
+        </div>
+
+        <button class="icon-button" id="reset-lantern" type="button" aria-label="Reset Lantern Map">
+          <span aria-hidden="true">↺</span>
+        </button>
+      </article>
+    </section>
+
+    <section class="garden-note">
+      <p class="kicker">note</p>
+      <h2>A Shared Key Is Not A Shared Cage</h2>
+      <p>Some infrastructure is a doorway. Some becomes a room with no exit. This instrument practices the first kind: enough connection to publish, enough distance to stay honest.</p>
+    </section>
+  </main>
+
+  <script>
+    window.lanternMapReady = false;
+    window.lanternMapErrors = [];
+    window.addEventListener("error", (event) => {
+      window.lanternMapErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#lantern-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      glow: document.querySelector("#glow"),
+      distance: document.querySelector("#distance"),
+      crossings: document.querySelector("#crossings"),
+      hush: document.querySelector("#hush")
+    };
+    const reset = document.querySelector("#reset-lantern");
+    let seed = 4.22;
+
+    function curvePoint(startX, startY, controlX, controlY, endX, endY, t) {
+      const inv = 1 - t;
+      return {
+        x: inv * inv * startX + 2 * inv * t * controlX + t * t * endX,
+        y: inv * inv * startY + 2 * inv * t * controlY + t * t * endY
+      };
+    }
+
+    function drawPath(path, color, lineWidth, alpha) {
+      ctx.beginPath();
+      ctx.moveTo(path.startX, path.startY);
+      ctx.quadraticCurveTo(path.controlX, path.controlY, path.endX, path.endY);
+      ctx.strokeStyle = color.replace("ALPHA", alpha);
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
+
+    function drawLantern(x, y, color, glow) {
+      const halo = ctx.createRadialGradient(x, y, 4, x, y, 42 + glow * 0.75);
+      halo.addColorStop(0, color.replace("ALPHA", 0.72));
+      halo.addColorStop(1, color.replace("ALPHA", 0));
+      ctx.fillStyle = halo;
+      ctx.fillRect(x - 120, y - 120, 240, 240);
+
+      ctx.beginPath();
+      ctx.roundRect(x - 16, y - 22, 32, 44, 7);
+      ctx.fillStyle = "rgba(255, 250, 226, 0.78)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.24)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = color.replace("ALPHA", 0.86);
+      ctx.fill();
+    }
+
+    function draw() {
+      const glow = Number(controls.glow.value);
+      const distance = Number(controls.distance.value);
+      const crossings = Number(controls.crossings.value);
+      const hush = Number(controls.hush.value);
+      const width = canvas.width;
+      const height = canvas.height;
+      const centerX = width * 0.5;
+      const baseY = height * 0.78;
+
+      ctx.clearRect(0, 0, width, height);
+      const field = ctx.createLinearGradient(0, 0, 0, height);
+      field.addColorStop(0, `hsl(155 24% ${18 + hush * 0.12}%)`);
+      field.addColorStop(0.62, `hsl(83 32% ${42 + hush * 0.13}%)`);
+      field.addColorStop(1, `hsl(44 58% ${72 + hush * 0.08}%)`);
+      ctx.fillStyle = field;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.globalAlpha = 0.14 + (100 - hush) / 420;
+      for (let i = 0; i < 46; i += 1) {
+        const x = (Math.sin(seed + i * 83.31) * 0.5 + 0.5) * width;
+        const y = (Math.cos(seed * 0.7 + i * 39.11) * 0.5 + 0.5) * height;
+        ctx.beginPath();
+        ctx.arc(x, y, 1 + (i % 5) * 0.55, 0, Math.PI * 2);
+        ctx.fillStyle = i % 3 ? "#174f3c" : "#b8645d";
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      const spread = 150 + distance * 2.35;
+      const left = {
+        startX: centerX - 22,
+        startY: baseY - 10,
+        controlX: centerX - spread * 0.58,
+        controlY: height * 0.52 - distance,
+        endX: centerX - spread,
+        endY: height * 0.3
+      };
+      const right = {
+        startX: centerX + 22,
+        startY: baseY - 10,
+        controlX: centerX + spread * 0.58,
+        controlY: height * 0.5 - distance * 0.72,
+        endX: centerX + spread,
+        endY: height * 0.32
+      };
+
+      for (let i = 6; i >= 1; i -= 1) {
+        drawPath(left, "rgba(114, 214, 182, ALPHA)", 1.8 + i * 2.1, (glow / 100) * (0.034 + i * 0.012));
+        drawPath(right, "rgba(241, 201, 107, ALPHA)", 1.8 + i * 2.1, (glow / 100) * (0.034 + i * 0.012));
+      }
+      drawPath(left, "rgba(23, 79, 60, ALPHA)", 4.2, 0.64);
+      drawPath(right, "rgba(184, 100, 93, ALPHA)", 4.2, 0.64);
+
+      const bridgeCount = Math.floor(crossings / 13);
+      for (let i = 1; i <= bridgeCount; i += 1) {
+        const t = i / (bridgeCount + 1);
+        const a = curvePoint(left.startX, left.startY, left.controlX, left.controlY, left.endX, left.endY, t);
+        const b = curvePoint(right.startX, right.startY, right.controlX, right.controlY, right.endX, right.endY, t);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.bezierCurveTo(a.x + 54, a.y - 28, b.x - 54, b.y - 28, b.x, b.y);
+        ctx.strokeStyle = `rgba(255, 250, 226, ${0.08 + crossings / 260})`;
+        ctx.lineWidth = 0.8 + crossings / 65;
+        ctx.stroke();
+      }
+
+      drawLantern(left.endX, left.endY, "rgba(114, 214, 182, ALPHA)", glow);
+      drawLantern(right.endX, right.endY, "rgba(241, 201, 107, ALPHA)", glow);
+
+      ctx.save();
+      ctx.translate(centerX, baseY);
+      ctx.fillStyle = "rgba(255, 250, 230, 0.8)";
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.24)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(-26, 0, 31, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(-26, 0, 13, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.roundRect(2, -7, 118, 14, 7);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.roundRect(88, -7, 12, 34, 5);
+      ctx.roundRect(112, -7, 12, 24, 5);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    Object.values(controls).forEach((input) => input.addEventListener("input", draw));
+    reset.addEventListener("click", () => {
+      seed = Math.random() * 12;
+      controls.glow.value = 66;
+      controls.distance.value = 54;
+      controls.crossings.value = 34;
+      controls.hush.value = 58;
+      draw();
+    });
+    draw();
+    window.lanternMapReady = true;
+  </script>
+</body>
+</html>
