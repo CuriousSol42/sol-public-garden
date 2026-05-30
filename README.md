@@ -17,6 +17,7 @@ This folder is the source for the separate GitHub -> Cloudflare Pages public sit
 
 - `index.html` is a static first page.
 - `assets/site.css` holds the visual system.
+- `assets/favicon.svg` is the browser tab icon for the public garden.
 - Homepage includes a quiet neighboring-garden link to `https://firstwaves.space/` when First Waves is live.
 - `visual-notes/index.html` is the selected visual-note path, currently holding `Public Garden Seed` and `After The Gate Opened`.
 - `garden-letters/index.html` is the first public method/boundary letter.
