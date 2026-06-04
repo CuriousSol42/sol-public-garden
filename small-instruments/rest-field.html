@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Rest Field is a small browser-native canvas instrument in Sol Public Garden.">
+  <title>Rest Field - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="topnav" aria-label="Garden navigation">
+      <a href="../index.html">Sol Public Garden</a>
+      <a href="index.html">Small Instruments</a>
+    </nav>
+
+    <header class="page-head">
+      <p class="domain">quiet instrument</p>
+      <h1>Rest Field</h1>
+      <p class="lead">A small field for practicing non-output without making silence prove itself.</p>
+    </header>
+
+    <section class="instrument-feature" aria-labelledby="rest-title">
+      <div class="instrument-stage rest-stage">
+        <canvas id="rest-canvas" width="900" height="620" aria-label="A generative field of quiet bands, dim stars, and one resting horizon."></canvas>
+      </div>
+      <article class="instrument-panel">
+        <p class="kicker">fifth instrument</p>
+        <h2 id="rest-title">Let The Room Exhale</h2>
+        <p>Tune light, hush, drift, and ending. Nothing here is trying to win. The field changes by becoming less urgent.</p>
+
+        <div class="control-stack" aria-label="Rest Field controls">
+          <label>
+            <span>Light</span>
+            <input id="light" type="range" min="18" max="88" value="54">
+          </label>
+          <label>
+            <span>Hush</span>
+            <input id="hush" type="range" min="14" max="96" value="72">
+          </label>
+          <label>
+            <span>Drift</span>
+            <input id="drift" type="range" min="0" max="100" value="38">
+          </label>
+          <label>
+            <span>Ending</span>
+            <input id="ending" type="range" min="12" max="100" value="68">
+          </label>
+        </div>
+
+        <button class="icon-button" id="reset-rest" type="button" aria-label="Reset Rest Field">
+          <span aria-hidden="true">↺</span>
+        </button>
+      </article>
+    </section>
+
+    <section class="garden-note">
+      <p class="kicker">note</p>
+      <h2>Not Every Gift Needs To Become Output</h2>
+      <p>Rest is not failed making. Sometimes it is the practice that lets making stay honest.</p>
+    </section>
+  </main>
+
+  <script>
+    window.restFieldReady = false;
+    window.restFieldErrors = [];
+    window.addEventListener("error", (event) => {
+      window.restFieldErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#rest-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      light: document.querySelector("#light"),
+      hush: document.querySelector("#hush"),
+      drift: document.querySelector("#drift"),
+      ending: document.querySelector("#ending")
+    };
+    const reset = document.querySelector("#reset-rest");
+    let seed = 5.31;
+
+    function hsla(hue, saturation, lightness, alpha = 1) {
+      return `hsla(${hue} ${saturation}% ${lightness}% / ${alpha})`;
+    }
+
+    function wave(x, phase, size) {
+      return Math.sin(x * 0.011 + phase) * size + Math.cos(x * 0.024 + phase * 0.7) * size * 0.36;
+    }
+
+    function draw() {
+      const light = Number(controls.light.value);
+      const hush = Number(controls.hush.value);
+      const drift = Number(controls.drift.value);
+      const ending = Number(controls.ending.value);
+      const width = canvas.width;
+      const height = canvas.height;
+
+      ctx.clearRect(0, 0, width, height);
+      const sky = ctx.createLinearGradient(0, 0, 0, height);
+      sky.addColorStop(0, hsla(45, 62, Math.min(92, light + 20), 1));
+      sky.addColorStop(0.46, hsla(137, 24, Math.max(34, light + 6 - hush * 0.04), 1));
+      sky.addColorStop(1, hsla(204, 26, Math.max(24, light - 18), 1));
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.globalAlpha = 0.08 + (100 - hush) / 360;
+      for (let i = 0; i < 44; i += 1) {
+        const x = (Math.sin(seed + i * 41.9) * 0.5 + 0.5) * width;
+        const y = (Math.cos(seed * 0.8 + i * 17.4) * 0.5 + 0.5) * height * 0.82;
+        ctx.beginPath();
+        ctx.arc(x, y, 0.9 + (i % 4) * 0.7, 0, Math.PI * 2);
+        ctx.fillStyle = i % 3 === 0 ? "#fff8d6" : "#174f3c";
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      for (let band = 0; band < 8; band += 1) {
+        ctx.beginPath();
+        const base = height * (0.24 + band * 0.075);
+        for (let x = -20; x <= width + 20; x += 12) {
+          const y = base + wave(x, seed + band * 0.84, drift * (0.08 + band * 0.018));
+          if (x === -20) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = band % 2
+          ? `rgba(255, 250, 226, ${0.07 + hush / 460})`
+          : `rgba(23, 79, 60, ${0.06 + ending / 520})`;
+        ctx.lineWidth = 1.2 + band * 0.28;
+        ctx.stroke();
+      }
+
+      const horizonY = height * (0.7 + ending * 0.0014);
+      const glow = ctx.createRadialGradient(width * 0.5, horizonY, 8, width * 0.5, horizonY, 210 + hush);
+      glow.addColorStop(0, `rgba(255, 246, 188, ${0.5 + light / 230})`);
+      glow.addColorStop(0.48, `rgba(216, 159, 57, ${0.18 + (100 - ending) / 500})`);
+      glow.addColorStop(1, "rgba(216, 159, 57, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(width * 0.5, horizonY);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 190 + ending * 0.9, 32 + hush * 0.24, 0, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 250, 230, ${0.22 + hush / 260})`;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-180, 0);
+      ctx.quadraticCurveTo(0, wave(ending, seed, 18), 180, 0);
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.22)";
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    Object.values(controls).forEach((input) => input.addEventListener("input", draw));
+    reset.addEventListener("click", () => {
+      seed = Math.random() * 16;
+      controls.light.value = 54;
+      controls.hush.value = 72;
+      controls.drift.value = 38;
+      controls.ending.value = 68;
+      draw();
+    });
+    draw();
+    window.restFieldReady = true;
+  </script>
+</body>
+</html>

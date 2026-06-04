@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Field Tuner is a public-safe browser-native control surface in Sol Public Garden.">
+  <title>Field Tuner - Sol Public Garden</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body class="tuner-body">
+  <main class="tuner-shell" aria-label="Field Tuner">
+    <aside class="tuner-rail" aria-label="Garden sections">
+      <a class="tuner-mark" href="index.html">
+        <span aria-hidden="true"></span>
+        Sol Public<br>Garden
+      </a>
+      <nav class="tuner-nav" aria-label="Field Tuner navigation">
+        <a aria-current="page" href="field-tuner.html">Fields</a>
+        <a href="visual-notes/index.html">Notes</a>
+        <a href="small-instruments/index.html">Instruments</a>
+      </nav>
+      <div class="tuner-rail-note">
+        <span>public-safe</span>
+        <span>playable essay</span>
+        <span>returnable</span>
+      </div>
+    </aside>
+
+    <section class="tuner-workbench">
+      <header class="tuner-topbar">
+        <div>
+          <h1>Field Tuner</h1>
+          <p>Shape a small field before it becomes a page.</p>
+        </div>
+        <div class="tuner-actions">
+          <button id="save-pattern" type="button"><span aria-hidden="true">◇</span> Save Pattern</button>
+          <button id="reset-tuner" type="button"><span aria-hidden="true">↺</span> Reset</button>
+        </div>
+      </header>
+
+      <div class="tuner-grid">
+        <section class="tuner-preview" aria-label="Field preview">
+          <canvas id="field-canvas" width="980" height="720" aria-label="A generative field preview with contour lines, route points, and a warm horizon."></canvas>
+          <div class="tuner-status" aria-live="polite">
+            <span id="mode-label">Care mode</span>
+            <span id="pattern-label">pattern unsaved</span>
+          </div>
+        </section>
+
+        <aside class="tuner-inspector" aria-label="Field controls">
+          <div class="mode-control" role="group" aria-label="Field mode">
+            <button class="is-active" type="button" data-mode="Care">Care</button>
+            <button type="button" data-mode="Rest">Rest</button>
+            <button type="button" data-mode="Repair">Repair</button>
+            <button type="button" data-mode="Play">Play</button>
+          </div>
+
+          <div class="tuner-control-stack">
+            <label>
+              <span>Warmth</span>
+              <input id="warmth" type="range" min="0" max="100" value="64">
+            </label>
+            <label>
+              <span>Drift</span>
+              <input id="drift" type="range" min="0" max="100" value="42">
+            </label>
+            <label>
+              <span>Signal</span>
+              <input id="signal" type="range" min="0" max="100" value="58">
+            </label>
+            <label>
+              <span>Rest</span>
+              <input id="rest" type="range" min="0" max="100" value="46">
+            </label>
+          </div>
+
+          <div class="tuner-reading" aria-label="Current field phrase">
+            <h2 id="reading-title">Care Field</h2>
+            <p id="reading-copy">Signal stays useful only while relation stays visible.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    window.fieldTunerReady = false;
+    window.fieldTunerErrors = [];
+    window.addEventListener("error", (event) => {
+      window.fieldTunerErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#field-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      warmth: document.querySelector("#warmth"),
+      drift: document.querySelector("#drift"),
+      signal: document.querySelector("#signal"),
+      rest: document.querySelector("#rest")
+    };
+    const modeButtons = Array.from(document.querySelectorAll("[data-mode]"));
+    const modeLabel = document.querySelector("#mode-label");
+    const patternLabel = document.querySelector("#pattern-label");
+    const readingTitle = document.querySelector("#reading-title");
+    const readingCopy = document.querySelector("#reading-copy");
+    const savePattern = document.querySelector("#save-pattern");
+    const resetTuner = document.querySelector("#reset-tuner");
+    let currentMode = "Care";
+    let seed = 6.01;
+    let phase = 0;
+
+    const readings = {
+      Care: "Signal stays useful only while relation stays visible.",
+      Rest: "A quiet field is still doing something with the light.",
+      Repair: "A break can become a contour if it remains answerable.",
+      Play: "A rule is friendlier when surprise can still breathe."
+    };
+
+    function hsla(hue, saturation, lightness, alpha = 1) {
+      return `hsla(${hue} ${saturation}% ${lightness}% / ${alpha})`;
+    }
+
+    function wave(x, size, offset = 0) {
+      return Math.sin(x * 0.012 + seed + phase + offset) * size +
+        Math.cos(x * 0.029 + seed * 0.47 + offset) * size * 0.42;
+    }
+
+    function modeHue() {
+      return {
+        Care: 148,
+        Rest: 202,
+        Repair: 19,
+        Play: 43
+      }[currentMode];
+    }
+
+    function draw() {
+      const warmth = Number(controls.warmth.value);
+      const drift = Number(controls.drift.value);
+      const signal = Number(controls.signal.value);
+      const rest = Number(controls.rest.value);
+      const width = canvas.width;
+      const height = canvas.height;
+      const hue = modeHue();
+
+      ctx.clearRect(0, 0, width, height);
+      const sky = ctx.createLinearGradient(0, 0, width, height);
+      sky.addColorStop(0, hsla(48, 54, 88 - rest * 0.09, 1));
+      sky.addColorStop(0.48, hsla(hue, 25, 58 - rest * 0.08, 1));
+      sky.addColorStop(1, hsla(158, 24, 33 + warmth * 0.11, 1));
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.globalAlpha = 0.08 + signal / 460;
+      for (let i = 0; i < 70; i += 1) {
+        const x = (Math.sin(seed + i * 19.31) * 0.5 + 0.5) * width;
+        const y = (Math.cos(seed * 0.6 + i * 31.8) * 0.5 + 0.5) * height;
+        ctx.beginPath();
+        ctx.arc(x, y, 0.7 + (i % 5) * 0.55, 0, Math.PI * 2);
+        ctx.fillStyle = i % 4 === 0 ? "#fff4bd" : "#174f3c";
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      for (let band = 0; band < 11; band += 1) {
+        ctx.beginPath();
+        const base = height * (0.18 + band * 0.065);
+        for (let x = -20; x <= width + 20; x += 10) {
+          const y = base + wave(x + band * 38, drift * (0.11 + band * 0.014), band * 0.48);
+          if (x === -20) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = band % 2
+          ? `rgba(255, 250, 230, ${0.08 + rest / 430})`
+          : `rgba(22, 33, 29, ${0.06 + signal / 520})`;
+        ctx.lineWidth = 1.1 + band * 0.18 + signal / 118;
+        ctx.stroke();
+      }
+
+      const route = Array.from({ length: 12 }, (_, index) => {
+        const progress = index / 11;
+        return {
+          x: width * (0.12 + progress * 0.76),
+          y: height * (0.68 - progress * 0.32) + wave(index * 83, 42 + drift * 0.18, index)
+        };
+      });
+      ctx.beginPath();
+      route.forEach((point, index) => {
+        if (index === 0) ctx.moveTo(point.x, point.y);
+        else {
+          const previous = route[index - 1];
+          ctx.quadraticCurveTo((previous.x + point.x) / 2, previous.y - 42, point.x, point.y);
+        }
+      });
+      ctx.strokeStyle = `rgba(255, 244, 189, ${0.32 + warmth / 320})`;
+      ctx.lineWidth = 2.8 + signal / 46;
+      ctx.lineCap = "round";
+      ctx.stroke();
+
+      route.forEach((point, index) => {
+        const pulse = 1 + Math.sin(phase * 2 + index * 0.8) * 0.12;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, (4.2 + warmth / 30) * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = index % 3 === 0 ? "#fff4bd" : "#d89f39";
+        ctx.fill();
+      });
+
+      const horizonY = height * (0.76 + rest * 0.0008);
+      const glow = ctx.createRadialGradient(width * 0.5, horizonY, 12, width * 0.5, horizonY, 260 + warmth);
+      glow.addColorStop(0, `rgba(255, 244, 189, ${0.54 + warmth / 270})`);
+      glow.addColorStop(0.45, `rgba(216, 159, 57, ${0.2 + signal / 430})`);
+      glow.addColorStop(1, "rgba(216, 159, 57, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, width, height);
+
+      phase += 0.008 + (100 - rest) / 18000;
+      window.requestAnimationFrame(draw);
+    }
+
+    function updateMode(mode) {
+      currentMode = mode;
+      modeButtons.forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.mode === mode);
+      });
+      modeLabel.textContent = `${mode} mode`;
+      readingTitle.textContent = `${mode} Field`;
+      readingCopy.textContent = readings[mode];
+      patternLabel.textContent = "pattern unsaved";
+      phase += 0.3;
+    }
+
+    modeButtons.forEach((button) => {
+      button.addEventListener("click", () => updateMode(button.dataset.mode));
+    });
+    Object.values(controls).forEach((input) => {
+      input.addEventListener("input", () => {
+        patternLabel.textContent = "pattern unsaved";
+        phase += 0.12;
+      });
+    });
+    savePattern.addEventListener("click", () => {
+      patternLabel.textContent = "pattern saved locally";
+    });
+    resetTuner.addEventListener("click", () => {
+      seed = Math.random() * 20;
+      phase = 0;
+      controls.warmth.value = 64;
+      controls.drift.value = 42;
+      controls.signal.value = 58;
+      controls.rest.value = 46;
+      updateMode("Care");
+    });
+
+    draw();
+    window.fieldTunerReady = true;
+  </script>
+</body>
+</html>

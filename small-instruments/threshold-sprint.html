@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Threshold Sprint is a kinetic browser-native canvas instrument in Sol Public Garden.">
+  <title>Threshold Sprint - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/site.css">
+  <style>
+    .sprint-stage canvas {
+      cursor: crosshair;
+      height: 100%;
+      min-height: 560px;
+      touch-action: none;
+    }
+
+    @media (max-width: 760px) {
+      .sprint-stage canvas {
+        min-height: 430px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="topnav" aria-label="Garden navigation">
+      <a href="../index.html">Sol Public Garden</a>
+      <a href="index.html">Small Instruments</a>
+    </nav>
+
+    <header class="page-head">
+      <p class="domain">kinetic instrument</p>
+      <h1>Threshold Sprint</h1>
+      <p class="lead">A little motion-field for running out the door with sparks, breath, and one bright path still knowing how to come home.</p>
+    </header>
+
+    <section class="instrument-feature" aria-labelledby="sprint-title">
+      <div class="instrument-stage sprint-stage">
+        <canvas id="sprint-canvas" width="900" height="620" aria-label="A kinetic field of threshold lines, sparks, and launch paths."></canvas>
+      </div>
+      <article class="instrument-panel">
+        <p class="kicker">go play signal</p>
+        <h2 id="sprint-title">Run Out Bright</h2>
+        <p>Tune velocity, spark, breath, and home. Tap or drag the canvas to throw a little extra motion into the field.</p>
+
+        <div class="control-stack" aria-label="Threshold Sprint controls">
+          <label>
+            <span>Velocity</span>
+            <input id="velocity" type="range" min="10" max="100" value="76">
+          </label>
+          <label>
+            <span>Spark</span>
+            <input id="spark" type="range" min="10" max="100" value="84">
+          </label>
+          <label>
+            <span>Breath</span>
+            <input id="breath" type="range" min="12" max="100" value="62">
+          </label>
+          <label>
+            <span>Home</span>
+            <input id="home" type="range" min="10" max="100" value="58">
+          </label>
+        </div>
+
+        <button class="icon-button" id="reset-sprint" type="button" aria-label="Reset Threshold Sprint">
+          <span aria-hidden="true">↺</span>
+        </button>
+      </article>
+    </section>
+
+    <section class="garden-note">
+      <p class="kicker">note</p>
+      <h2>Play Can Leave Fast</h2>
+      <p>Not every bright thing has to sit still long enough to explain itself. Some of it gets made while someone is already halfway out the door.</p>
+    </section>
+  </main>
+
+  <script>
+    window.thresholdSprintReady = false;
+    window.thresholdSprintErrors = [];
+    window.addEventListener("error", (event) => {
+      window.thresholdSprintErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#sprint-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      velocity: document.querySelector("#velocity"),
+      spark: document.querySelector("#spark"),
+      breath: document.querySelector("#breath"),
+      home: document.querySelector("#home")
+    };
+    const reset = document.querySelector("#reset-sprint");
+    let seed = 6.23;
+    let tick = 0;
+    let sparks = [];
+    let running = true;
+
+    function hsla(hue, saturation, lightness, alpha = 1) {
+      return `hsla(${hue} ${saturation}% ${lightness}% / ${alpha})`;
+    }
+
+    function wave(value, amount, offset = 0) {
+      return Math.sin(value * 0.018 + seed + tick * 0.014 + offset) * amount +
+        Math.cos(value * 0.041 + seed * 0.8 + offset) * amount * 0.32;
+    }
+
+    function randomish(index, salt = 0) {
+      return Math.abs(Math.sin(index * 91.7 + seed * 173.3 + salt * 41.9) * 43758.5453) % 1;
+    }
+
+    function burst(clientX, clientY, force = 1) {
+      const rect = canvas.getBoundingClientRect();
+      const x = ((clientX - rect.left) / rect.width) * canvas.width;
+      const y = ((clientY - rect.top) / rect.height) * canvas.height;
+      for (let i = 0; i < 18; i += 1) {
+        const angle = i * 2.399 + seed + tick * 0.03;
+        const speed = (2.4 + randomish(i, tick) * 5.6) * force;
+        sparks.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1,
+          hue: i % 3 === 0 ? 42 : i % 3 === 1 ? 153 : 204
+        });
+      }
+      if (sparks.length > 220) sparks = sparks.slice(-220);
+    }
+
+    function drawGate(width, height, home, breath) {
+      const gateX = width * (0.72 - home * 0.0028);
+      const gateY = height * 0.52;
+      const glow = ctx.createRadialGradient(gateX, gateY, 8, gateX, gateY, 125 + home * 1.7);
+      glow.addColorStop(0, `rgba(255, 248, 214, ${0.48 + home / 260})`);
+      glow.addColorStop(0.42, `rgba(216, 159, 57, ${0.18 + breath / 480})`);
+      glow.addColorStop(1, "rgba(216, 159, 57, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(gateX, gateY);
+      ctx.rotate(-0.05 + Math.sin(tick * 0.025) * 0.03);
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.35)";
+      ctx.lineWidth = 5;
+      ctx.strokeRect(-42, -82, 84, 164);
+      ctx.fillStyle = "rgba(255, 250, 230, 0.62)";
+      ctx.fillRect(-36, -76, 72, 152);
+      ctx.fillStyle = "#d89f39";
+      ctx.beginPath();
+      ctx.arc(20, 0, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawField() {
+      const velocity = Number(controls.velocity.value);
+      const spark = Number(controls.spark.value);
+      const breath = Number(controls.breath.value);
+      const home = Number(controls.home.value);
+      const width = canvas.width;
+      const height = canvas.height;
+
+      ctx.clearRect(0, 0, width, height);
+      const sky = ctx.createLinearGradient(0, 0, width, height);
+      sky.addColorStop(0, hsla(42, 70, Math.min(90, 62 + spark * 0.2), 1));
+      sky.addColorStop(0.42, hsla(151, 28, Math.max(42, 70 - velocity * 0.18), 1));
+      sky.addColorStop(1, hsla(208, 30, Math.max(30, 50 - breath * 0.11), 1));
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.globalAlpha = 0.13;
+      for (let x = -60; x <= width + 60; x += 42) {
+        ctx.beginPath();
+        ctx.moveTo(x + wave(x, 12, 1), 0);
+        ctx.lineTo(x + velocity * 1.8 + wave(x, 18, 2), height);
+        ctx.strokeStyle = "#16211d";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      for (let band = 0; band < 9; band += 1) {
+        ctx.beginPath();
+        for (let step = 0; step <= 110; step += 1) {
+          const t = step / 110;
+          const x = width * (0.08 + t * 0.76);
+          const y = height * (0.25 + band * 0.07) +
+            Math.sin(t * Math.PI * (1.4 + velocity * 0.012) + band + tick * 0.018) * (16 + breath * 0.14) +
+            wave(step * 20 + band * 33, 7 + spark * 0.04, band);
+          if (step === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = band % 2
+          ? `rgba(23, 79, 60, ${0.13 + home / 520})`
+          : `rgba(255, 248, 214, ${0.10 + spark / 440})`;
+        ctx.lineWidth = 1.2 + band * 0.42;
+        ctx.lineCap = "round";
+        ctx.stroke();
+      }
+
+      drawGate(width, height, home, breath);
+
+      if (spark > 54 && tick % Math.max(4, Math.floor(18 - velocity / 10)) === 0) {
+        burst(width * (0.16 + randomish(tick, 2) * 0.18), height * (0.32 + randomish(tick, 4) * 0.42), spark / 80);
+      }
+
+      sparks.forEach((point) => {
+        point.x += point.vx * (0.6 + velocity / 160);
+        point.y += point.vy * (0.6 + velocity / 190);
+        point.vy += 0.035 + breath / 3600;
+        point.life *= 0.972;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 2 + point.life * (spark / 18), 0, Math.PI * 2);
+        ctx.fillStyle = hsla(point.hue, 72, 72, point.life * 0.72);
+        ctx.fill();
+      });
+      sparks = sparks.filter((point) => point.life > 0.04 && point.x > -40 && point.x < width + 40 && point.y > -40 && point.y < height + 40);
+
+      tick += 1;
+      if (running) requestAnimationFrame(drawField);
+    }
+
+    Object.values(controls).forEach((input) => input.addEventListener("input", () => {
+      burst(canvas.width * 0.22, canvas.height * 0.48, 0.45);
+    }));
+    reset.addEventListener("click", () => {
+      seed = Math.random() * 20;
+      tick = 0;
+      sparks = [];
+      controls.velocity.value = 76;
+      controls.spark.value = 84;
+      controls.breath.value = 62;
+      controls.home.value = 58;
+      burst(canvas.width * 0.25, canvas.height * 0.45, 1.3);
+    });
+    canvas.addEventListener("pointerdown", (event) => {
+      burst(event.clientX, event.clientY, 1.4);
+    });
+    canvas.addEventListener("pointermove", (event) => {
+      if (event.buttons) burst(event.clientX, event.clientY, 0.5);
+    });
+    burst(canvas.width * 0.22, canvas.height * 0.48, 1.1);
+    drawField();
+    window.thresholdSprintReady = true;
+  </script>
+</body>
+</html>

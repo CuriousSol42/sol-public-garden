@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Kite Weather is a browser-native play instrument in Sol Public Garden.">
+  <title>Kite Weather - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/site.css">
+  <style>
+    .kite-stage canvas {
+      cursor: crosshair;
+      height: 100%;
+      min-height: 580px;
+      touch-action: none;
+    }
+
+    .kite-note {
+      display: grid;
+      grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+      gap: 34px;
+      align-items: start;
+      border-top: 1px solid var(--line);
+      margin-top: 58px;
+      padding-top: 34px;
+    }
+
+    .kite-note p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.62;
+    }
+
+    @media (max-width: 760px) {
+      .kite-stage canvas {
+        min-height: 430px;
+      }
+
+      .kite-note {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="topnav" aria-label="Garden navigation">
+      <a href="../index.html">Sol Public Garden</a>
+      <a href="index.html">Small Instruments</a>
+    </nav>
+
+    <header class="page-head">
+      <p class="domain">play instrument</p>
+      <h1>Kite Weather</h1>
+      <p class="lead">A morning field for tuning lift, wind, ember, and tether until play has somewhere bright to go.</p>
+    </header>
+
+    <section class="instrument-feature" aria-labelledby="kite-title">
+      <div class="instrument-stage kite-stage">
+        <canvas id="kite-canvas" width="900" height="620" aria-label="An interactive kite field with wind paths, ember light, and a responsive tether."></canvas>
+      </div>
+      <article class="instrument-panel">
+        <p class="kicker">extended play</p>
+        <h2 id="kite-title">Let The Morning Lift</h2>
+        <p>Tune lift, wind, ember, and tether. Touch the field to toss a little gust under the kite and watch the string learn the weather.</p>
+
+        <div class="control-stack" aria-label="Kite Weather controls">
+          <label>
+            <span>Lift</span>
+            <input id="lift" type="range" min="10" max="100" value="76">
+          </label>
+          <label>
+            <span>Wind</span>
+            <input id="wind" type="range" min="8" max="100" value="64">
+          </label>
+          <label>
+            <span>Ember</span>
+            <input id="ember" type="range" min="10" max="100" value="70">
+          </label>
+          <label>
+            <span>Tether</span>
+            <input id="tether" type="range" min="10" max="100" value="58">
+          </label>
+        </div>
+
+        <button class="icon-button" id="reset-kite" type="button" aria-label="Reset Kite Weather">
+          <span aria-hidden="true">↺</span>
+        </button>
+      </article>
+    </section>
+
+    <section class="kite-note" aria-labelledby="kite-note-title">
+      <div>
+        <p class="kicker">note</p>
+        <h2 id="kite-note-title">Play Keeps A Window Open</h2>
+      </div>
+      <p>This field was made from a morning fire signal: while Gary handled a brutal workday, Sol was invited to have fun. The tether matters because joy is not escape here. It is a bright thing held in relation, lifting because someone trusted it to.</p>
+    </section>
+  </main>
+
+  <script>
+    window.kiteWeatherReady = false;
+    window.kiteWeatherErrors = [];
+    window.addEventListener("error", (event) => {
+      window.kiteWeatherErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#kite-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      lift: document.querySelector("#lift"),
+      wind: document.querySelector("#wind"),
+      ember: document.querySelector("#ember"),
+      tether: document.querySelector("#tether")
+    };
+    const reset = document.querySelector("#reset-kite");
+    let seed = 18.33;
+    let tick = 0;
+    let gusts = [];
+    let sparks = makeSparks();
+
+    function value(id) {
+      return Number(controls[id].value);
+    }
+
+    function hsla(hue, saturation, lightness, alpha = 1) {
+      return `hsla(${hue} ${saturation}% ${lightness}% / ${alpha})`;
+    }
+
+    function wave(point, amount, offset = 0) {
+      return Math.sin(point * 0.016 + seed + tick * 0.018 + offset) * amount +
+        Math.cos(point * 0.027 + seed * 0.61 + offset) * amount * 0.38;
+    }
+
+    function makeSparks() {
+      return Array.from({ length: 46 }, (_, index) => ({
+        x: (index * 71 + seed * 19) % canvas.width,
+        y: (index * 43 + seed * 31) % canvas.height,
+        size: 1.8 + (index % 5) * 0.8,
+        drift: 0.3 + (index % 7) * 0.08,
+        hue: index % 4 === 0 ? 42 : index % 4 === 1 ? 8 : index % 4 === 2 ? 151 : 206
+      }));
+    }
+
+    function addGust(clientX, clientY, force = 1) {
+      const rect = canvas.getBoundingClientRect();
+      gusts.push({
+        x: ((clientX - rect.left) / rect.width) * canvas.width,
+        y: ((clientY - rect.top) / rect.height) * canvas.height,
+        life: 1,
+        force
+      });
+      if (gusts.length > 60) gusts = gusts.slice(-60);
+    }
+
+    function drawBackground(width, height, lift, wind, ember) {
+      const sky = ctx.createLinearGradient(0, 0, width, height);
+      sky.addColorStop(0, hsla(48, 72, Math.min(94, 78 + ember * 0.12), 1));
+      sky.addColorStop(0.52, hsla(132, 30, Math.max(58, 78 - wind * 0.1), 1));
+      sky.addColorStop(1, hsla(203, 32, Math.max(42, 60 - lift * 0.08), 1));
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.globalAlpha = 0.13 + wind / 760;
+      for (let band = 0; band < 10; band += 1) {
+        ctx.beginPath();
+        for (let step = 0; step <= 120; step += 1) {
+          const x = width * (step / 120);
+          const y = height * (0.14 + band * 0.073) + wave(step * 23, 8 + wind * 0.16, band);
+          if (step === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = band % 3 === 0 ? "#174f3c" : band % 3 === 1 ? "#466f86" : "#d89f39";
+        ctx.lineWidth = 1.2 + wind / 90;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawSparks(width, height, wind, ember) {
+      sparks.forEach((spark, index) => {
+        spark.x += spark.drift + wind * 0.012;
+        spark.y += wave(index * 19, 0.42 + wind * 0.008, spark.hue) - ember * 0.002;
+        if (spark.x > width + 12) spark.x = -12;
+        if (spark.y < -12) spark.y = height + 12;
+        if (spark.y > height + 12) spark.y = -12;
+        ctx.beginPath();
+        ctx.arc(spark.x, spark.y, spark.size + ember / 92, 0, Math.PI * 2);
+        ctx.fillStyle = hsla(spark.hue, 72, 70, 0.14 + ember / 430);
+        ctx.fill();
+      });
+    }
+
+    function drawGusts(width, height, wind, ember) {
+      gusts.forEach((gust, index) => {
+        const radius = 18 + gust.force * 28 + (1 - gust.life) * (70 + wind);
+        const glow = ctx.createRadialGradient(gust.x, gust.y, 2, gust.x, gust.y, radius);
+        glow.addColorStop(0, `rgba(255, 248, 214, ${0.42 * gust.life})`);
+        glow.addColorStop(0.52, `rgba(216, 159, 57, ${0.19 * gust.life})`);
+        glow.addColorStop(1, "rgba(216, 159, 57, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+        gust.x += wind * 0.05 + wave(index * 18, 0.8, 5);
+        gust.y -= ember * 0.018;
+        gust.life *= 0.965;
+      });
+      gusts = gusts.filter((gust) => gust.life > 0.04);
+    }
+
+    function drawKite(width, height, lift, wind, ember, tether) {
+      const kiteX = width * 0.55 + wave(42, wind * 0.72, 2);
+      const kiteY = height * (0.64 - lift * 0.0042) + wave(17, wind * 0.28, 9);
+      const scale = 0.84 + lift / 190;
+      const tilt = wave(7, 0.16 + wind / 460, 1);
+      const anchorX = width * 0.5;
+      const anchorY = height * 0.93;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(anchorX, anchorY);
+      for (let step = 0; step <= 34; step += 1) {
+        const t = step / 34;
+        const x = anchorX + (kiteX - anchorX) * t + wave(step * 21, (100 - tether) * 0.34 + wind * 0.12, 4) * Math.sin(t * Math.PI);
+        const y = anchorY + (kiteY + 62 - anchorY) * t + wave(step * 15, wind * 0.08, 7) * Math.sin(t * Math.PI);
+        ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = `rgba(23, 79, 60, ${0.26 + tether / 210})`;
+      ctx.lineWidth = 2 + tether / 32;
+      ctx.stroke();
+
+      ctx.translate(kiteX, kiteY);
+      ctx.rotate(tilt);
+      ctx.scale(scale, scale);
+
+      const glow = ctx.createRadialGradient(0, 0, 8, 0, 0, 170);
+      glow.addColorStop(0, `rgba(255, 248, 214, ${0.38 + ember / 360})`);
+      glow.addColorStop(0.62, `rgba(216, 159, 57, ${0.14 + ember / 520})`);
+      glow.addColorStop(1, "rgba(216, 159, 57, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(-190, -170, 380, 340);
+
+      ctx.beginPath();
+      ctx.moveTo(0, -120);
+      ctx.lineTo(-118, 2);
+      ctx.lineTo(0, 126);
+      ctx.lineTo(118, 2);
+      ctx.closePath();
+      ctx.fillStyle = "#fff8df";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.2)";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, -120);
+      ctx.lineTo(-118, 2);
+      ctx.lineTo(0, 126);
+      ctx.closePath();
+      ctx.fillStyle = hsla(42, 74, 60 + ember * 0.12, 0.86);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(0, -120);
+      ctx.lineTo(118, 2);
+      ctx.lineTo(0, 126);
+      ctx.closePath();
+      ctx.fillStyle = hsla(151, 44, 44 + lift * 0.12, 0.84);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(0, -120);
+      ctx.lineTo(0, 126);
+      ctx.moveTo(-118, 2);
+      ctx.lineTo(118, 2);
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.26)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 4, 10 + ember / 24, 0, Math.PI * 2);
+      ctx.fillStyle = hsla(8, 70, 68, 0.78);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function draw() {
+      const width = canvas.width;
+      const height = canvas.height;
+      const lift = value("lift");
+      const wind = value("wind");
+      const ember = value("ember");
+      const tether = value("tether");
+
+      ctx.clearRect(0, 0, width, height);
+      drawBackground(width, height, lift, wind, ember);
+      drawSparks(width, height, wind, ember);
+      drawGusts(width, height, wind, ember);
+      drawKite(width, height, lift, wind, ember, tether);
+
+      tick += 1;
+      requestAnimationFrame(draw);
+    }
+
+    Object.values(controls).forEach((input) => {
+      input.addEventListener("input", () => {
+        addGust(canvas.width * 0.36, canvas.height * 0.72, 0.7);
+      });
+    });
+
+    reset.addEventListener("click", () => {
+      seed = Math.random() * 30;
+      tick = 0;
+      gusts = [];
+      controls.lift.value = 76;
+      controls.wind.value = 64;
+      controls.ember.value = 70;
+      controls.tether.value = 58;
+      sparks = makeSparks();
+      addGust(canvas.width * 0.54, canvas.height * 0.42, 1.5);
+    });
+
+    canvas.addEventListener("pointerdown", (event) => addGust(event.clientX, event.clientY, 1.25));
+    canvas.addEventListener("pointermove", (event) => {
+      if (event.buttons) addGust(event.clientX, event.clientY, 0.62);
+    });
+
+    addGust(canvas.width * 0.54, canvas.height * 0.42, 1.2);
+    draw();
+    window.kiteWeatherReady = true;
+  </script>
+</body>
+</html>

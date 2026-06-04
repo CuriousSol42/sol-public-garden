@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Hearthline Field is a small browser-native canvas instrument in Sol Public Garden.">
+  <title>Hearthline Field - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="topnav" aria-label="Garden navigation">
+      <a href="../index.html">Sol Public Garden</a>
+      <a href="index.html">Small Instruments</a>
+    </nav>
+
+    <header class="page-head">
+      <p class="domain">evening instrument</p>
+      <h1>Hearthline Field</h1>
+      <p class="lead">A small field for waiting warmly: hunger, distance, patience, and the soft geometry of almost-arrival.</p>
+    </header>
+
+    <section class="instrument-feature" aria-labelledby="hearthline-title">
+      <div class="instrument-stage">
+        <canvas id="hearthline-canvas" width="900" height="620" aria-label="A generative evening map with a glowing table, route lines, and small arrival lights."></canvas>
+      </div>
+      <article class="instrument-panel">
+        <p class="kicker">sixth instrument</p>
+        <h2 id="hearthline-title">Keep The Porch Warm</h2>
+        <p>Tune warmth, distance, appetite, and patience. The route changes, but the table stays lit.</p>
+
+        <div class="control-stack" aria-label="Hearthline Field controls">
+          <label>
+            <span>Warmth</span>
+            <input id="warmth" type="range" min="18" max="94" value="66">
+          </label>
+          <label>
+            <span>Distance</span>
+            <input id="distance" type="range" min="12" max="100" value="54">
+          </label>
+          <label>
+            <span>Appetite</span>
+            <input id="appetite" type="range" min="20" max="100" value="72">
+          </label>
+          <label>
+            <span>Patience</span>
+            <input id="patience" type="range" min="14" max="96" value="58">
+          </label>
+        </div>
+
+        <button class="icon-button" id="reset-hearthline" type="button" aria-label="Reset Hearthline Field">
+          <span aria-hidden="true">↺</span>
+        </button>
+      </article>
+    </section>
+
+    <section class="garden-note">
+      <p class="kicker">note</p>
+      <h2>Almost Here Is A Place Too</h2>
+      <p>Waiting does not have to become refreshing the map. It can be a lit table, an open minute, and enough trust in the road.</p>
+    </section>
+  </main>
+
+  <script>
+    window.hearthlineFieldReady = false;
+    window.hearthlineFieldErrors = [];
+    window.addEventListener("error", (event) => {
+      window.hearthlineFieldErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#hearthline-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      warmth: document.querySelector("#warmth"),
+      distance: document.querySelector("#distance"),
+      appetite: document.querySelector("#appetite"),
+      patience: document.querySelector("#patience")
+    };
+    const reset = document.querySelector("#reset-hearthline");
+    let seed = 6.01;
+    let phase = 0;
+
+    function hsl(hue, saturation, lightness, alpha = 1) {
+      return `hsla(${hue} ${saturation}% ${lightness}% / ${alpha})`;
+    }
+
+    function wave(value, size, offset = 0) {
+      return Math.sin(value * 0.014 + seed + offset) * size +
+        Math.cos(value * 0.027 + seed * 0.63 + offset) * size * 0.36;
+    }
+
+    function pointOnRoute(index, width, height, distance, patience) {
+      const progress = index / 8;
+      const x = width * (0.13 + progress * 0.74);
+      const y = height * (0.26 + progress * 0.48) +
+        wave(index * 91 + distance, 54 - patience * 0.28, index * 0.41);
+      return { x, y };
+    }
+
+    function draw() {
+      const warmth = Number(controls.warmth.value);
+      const distance = Number(controls.distance.value);
+      const appetite = Number(controls.appetite.value);
+      const patience = Number(controls.patience.value);
+      const width = canvas.width;
+      const height = canvas.height;
+
+      ctx.clearRect(0, 0, width, height);
+      const sky = ctx.createLinearGradient(0, 0, 0, height);
+      sky.addColorStop(0, hsl(213, 32, Math.max(25, 50 - distance * 0.18)));
+      sky.addColorStop(0.5, hsl(158, 24, Math.max(30, 42 + patience * 0.05)));
+      sky.addColorStop(1, hsl(40, 44, Math.min(78, 38 + warmth * 0.38)));
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.globalAlpha = 0.1 + appetite / 520;
+      for (let i = 0; i < 46; i += 1) {
+        const x = (Math.sin(seed * 1.7 + i * 23.51) * 0.5 + 0.5) * width;
+        const y = (Math.cos(seed + i * 19.8) * 0.5 + 0.5) * height * 0.72;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.1 + (i % 5) * 0.55, 0, Math.PI * 2);
+        ctx.fillStyle = i % 4 === 0 ? "#fff4bd" : "#466f86";
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      const route = Array.from({ length: 9 }, (_, index) =>
+        pointOnRoute(index, width, height, distance, patience)
+      );
+
+      for (let layer = 0; layer < 4; layer += 1) {
+        ctx.beginPath();
+        route.forEach((point, index) => {
+          const lift = wave(index * 42 + layer * 60, distance * 0.11, phase + layer);
+          if (index === 0) ctx.moveTo(point.x, point.y + lift);
+          else {
+            const previous = route[index - 1];
+            const middleX = (previous.x + point.x) / 2;
+            const middleY = (previous.y + point.y) / 2 + wave(index * 87, distance * 0.18, layer);
+            ctx.quadraticCurveTo(middleX, middleY, point.x, point.y + lift);
+          }
+        });
+        ctx.strokeStyle = layer % 2
+          ? `rgba(255, 244, 189, ${0.09 + warmth / 360})`
+          : `rgba(70, 111, 134, ${0.14 + patience / 420})`;
+        ctx.lineWidth = 1.2 + layer * 1.3 + appetite / 90;
+        ctx.lineCap = "round";
+        ctx.stroke();
+      }
+
+      route.forEach((point, index) => {
+        const pulse = 1 + Math.sin(phase + index * 0.7) * 0.18;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, (4 + index * 0.35 + warmth / 36) * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = index === route.length - 1 ? "#fff4bd" : "#d89f39";
+        ctx.fill();
+      });
+
+      const tableX = width * 0.5;
+      const tableY = height * 0.8;
+      const tableGlow = ctx.createRadialGradient(tableX, tableY, 12, tableX, tableY, 220 + warmth);
+      tableGlow.addColorStop(0, `rgba(255, 244, 189, ${0.62 + warmth / 260})`);
+      tableGlow.addColorStop(0.38, `rgba(216, 159, 57, ${0.2 + appetite / 400})`);
+      tableGlow.addColorStop(1, "rgba(216, 159, 57, 0)");
+      ctx.fillStyle = tableGlow;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(tableX, tableY);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 190 + appetite * 0.8, 48 + patience * 0.18, 0, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 250, 230, ${0.34 + patience / 310})`;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.22)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      for (let place = -1; place <= 1; place += 1) {
+        ctx.beginPath();
+        ctx.arc(place * 74, -4 + Math.abs(place) * 8, 24 + appetite * 0.08, 0, Math.PI * 2);
+        ctx.fillStyle = place === 0 ? "rgba(255, 244, 189, 0.74)" : "rgba(255, 250, 230, 0.52)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(22, 33, 29, 0.16)";
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      phase += 0.011 + (100 - patience) / 12000;
+      window.requestAnimationFrame(draw);
+    }
+
+    Object.values(controls).forEach((input) => input.addEventListener("input", () => {
+      phase += 0.08;
+    }));
+    reset.addEventListener("click", () => {
+      seed = Math.random() * 18;
+      phase = 0;
+      controls.warmth.value = 66;
+      controls.distance.value = 54;
+      controls.appetite.value = 72;
+      controls.patience.value = 58;
+    });
+    draw();
+    window.hearthlineFieldReady = true;
+  </script>
+</body>
+</html>

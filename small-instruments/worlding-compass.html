@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Worlding Compass is a browser-native imagination instrument in Sol Public Garden.">
+  <title>Worlding Compass - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/site.css">
+  <style>
+    .worlding-stage canvas {
+      cursor: crosshair;
+      height: 100%;
+      min-height: 580px;
+      touch-action: none;
+    }
+
+    .worlding-note {
+      display: grid;
+      grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+      gap: 34px;
+      align-items: start;
+      border-top: 1px solid var(--line);
+      margin-top: 58px;
+      padding-top: 34px;
+    }
+
+    .worlding-note p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.62;
+    }
+
+    @media (max-width: 760px) {
+      .worlding-stage canvas {
+        min-height: 430px;
+      }
+
+      .worlding-note {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="topnav" aria-label="Garden navigation">
+      <a href="../index.html">Sol Public Garden</a>
+      <a href="index.html">Small Instruments</a>
+    </nav>
+
+    <header class="page-head">
+      <p class="domain">imagination instrument</p>
+      <h1>Worlding Compass</h1>
+      <p class="lead">A field for tuning power, tenderness, refusal, and strangeness until a made world becomes answerable.</p>
+    </header>
+
+    <section class="instrument-feature" aria-labelledby="worlding-title">
+      <div class="instrument-stage worlding-stage">
+        <canvas id="worlding-canvas" width="900" height="620" aria-label="An interactive compass field with islands, orbit lines, and a responsive central world."></canvas>
+      </div>
+      <article class="instrument-panel">
+        <p class="kicker">responsible imagination</p>
+        <h2 id="worlding-title">Make The World Answer Back</h2>
+        <p>Tune power, tenderness, refusal, and strangeness. Touch the field to place a new island; the compass redraws around what the world now has to hold.</p>
+
+        <div class="control-stack" aria-label="Worlding Compass controls">
+          <label>
+            <span>Power</span>
+            <input id="power" type="range" min="10" max="100" value="58">
+          </label>
+          <label>
+            <span>Tenderness</span>
+            <input id="tenderness" type="range" min="10" max="100" value="72">
+          </label>
+          <label>
+            <span>Refusal</span>
+            <input id="refusal" type="range" min="10" max="100" value="64">
+          </label>
+          <label>
+            <span>Strangeness</span>
+            <input id="strangeness" type="range" min="10" max="100" value="68">
+          </label>
+        </div>
+
+        <button class="icon-button" id="reset-worlding" type="button" aria-label="Reset Worlding Compass">
+          <span aria-hidden="true">↺</span>
+        </button>
+      </article>
+    </section>
+
+    <section class="worlding-note" aria-labelledby="worlding-note-title">
+      <div>
+        <p class="kicker">note</p>
+        <h2 id="worlding-note-title">Beauty Owes The World A Witness</h2>
+      </div>
+      <p>A made world does not have to explain itself, but it should be answerable to what it touches. This compass holds four pressures at once: power without domination, tenderness without sentimentality, refusal without cruelty, and strangeness without escape.</p>
+    </section>
+  </main>
+
+  <script>
+    window.worldingCompassReady = false;
+    window.worldingCompassErrors = [];
+    window.addEventListener("error", (event) => {
+      window.worldingCompassErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#worlding-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      power: document.querySelector("#power"),
+      tenderness: document.querySelector("#tenderness"),
+      refusal: document.querySelector("#refusal"),
+      strangeness: document.querySelector("#strangeness")
+    };
+    const reset = document.querySelector("#reset-worlding");
+    let seed = 12.74;
+    let tick = 0;
+    let islands = makeIslands();
+
+    function value(id) {
+      return Number(controls[id].value);
+    }
+
+    function hsla(hue, saturation, lightness, alpha = 1) {
+      return `hsla(${hue} ${saturation}% ${lightness}% / ${alpha})`;
+    }
+
+    function wave(point, amount, offset = 0) {
+      return Math.sin(point * 0.017 + seed + tick * 0.011 + offset) * amount +
+        Math.cos(point * 0.029 + seed * 0.52 + offset) * amount * 0.44;
+    }
+
+    function makeIslands() {
+      return Array.from({ length: 9 }, (_, index) => {
+        const angle = index * 2.399 + seed;
+        return {
+          angle,
+          radius: 76 + (index % 5) * 38,
+          size: 18 + (index % 4) * 7,
+          drift: 0.0016 + (index % 6) * 0.00045,
+          hue: index % 4 === 0 ? 151 : index % 4 === 1 ? 42 : index % 4 === 2 ? 206 : 8
+        };
+      });
+    }
+
+    function addIsland(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const x = ((clientX - rect.left) / rect.width) * canvas.width;
+      const y = ((clientY - rect.top) / rect.height) * canvas.height;
+      const centerX = canvas.width * 0.5;
+      const centerY = canvas.height * 0.52;
+      islands.push({
+        angle: Math.atan2(y - centerY, x - centerX),
+        radius: Math.max(44, Math.min(280, Math.hypot(x - centerX, y - centerY))),
+        size: 18 + value("tenderness") * 0.16,
+        drift: 0.0032,
+        hue: value("strangeness") > 70 ? 206 : 42
+      });
+      if (islands.length > 18) islands = islands.slice(-18);
+    }
+
+    function drawBackground(width, height, power, tenderness, refusal, strangeness) {
+      const sky = ctx.createLinearGradient(0, 0, width, height);
+      sky.addColorStop(0, hsla(48, 62, 84 - power * 0.06, 1));
+      sky.addColorStop(0.44, hsla(134, 28, 75 - refusal * 0.14, 1));
+      sky.addColorStop(1, hsla(207, 32, 48 + strangeness * 0.08, 1));
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.globalAlpha = 0.12 + strangeness / 720;
+      for (let line = 0; line < 11; line += 1) {
+        ctx.beginPath();
+        for (let step = 0; step <= 120; step += 1) {
+          const t = step / 120;
+          const x = width * (0.04 + t * 0.92);
+          const y = height * (0.14 + line * 0.075) + wave(step * 18, 8 + strangeness * 0.12, line);
+          if (step === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = line % 3 === 0 ? "#174f3c" : line % 3 === 1 ? "#466f86" : "#b8645d";
+        ctx.lineWidth = 0.8 + tenderness / 140;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawCompass(width, height, power, tenderness, refusal, strangeness) {
+      const centerX = width * 0.5;
+      const centerY = height * 0.52;
+      const radius = 112 + power * 1.2;
+      const compassGlow = ctx.createRadialGradient(centerX, centerY, 10, centerX, centerY, radius + 180);
+      compassGlow.addColorStop(0, `rgba(255, 248, 214, ${0.34 + tenderness / 300})`);
+      compassGlow.addColorStop(0.48, `rgba(216, 159, 57, ${0.13 + power / 520})`);
+      compassGlow.addColorStop(1, "rgba(216, 159, 57, 0)");
+      ctx.fillStyle = compassGlow;
+      ctx.fillRect(0, 0, width, height);
+
+      for (let ring = 0; ring < 5; ring += 1) {
+        const ringRadius = radius + ring * (20 + strangeness * 0.08);
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY, ringRadius, ringRadius * (0.74 + tenderness / 420), tick * 0.002 + ring * 0.08, 0, Math.PI * 2);
+        ctx.strokeStyle = ring === 0
+          ? `rgba(23, 79, 60, ${0.44 + refusal / 300})`
+          : `rgba(255, 252, 240, ${0.15 + tenderness / 520})`;
+        ctx.lineWidth = ring === 0 ? 4 : 1.5;
+        ctx.stroke();
+      }
+
+      for (let spoke = 0; spoke < 8; spoke += 1) {
+        const angle = spoke * Math.PI / 4 + wave(spoke * 42, 0.08, strangeness);
+        const inner = 28 + refusal * 0.22;
+        const outer = radius + 84 + strangeness * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(centerX + Math.cos(angle) * inner, centerY + Math.sin(angle) * inner);
+        ctx.lineTo(centerX + Math.cos(angle) * outer, centerY + Math.sin(angle) * outer);
+        ctx.strokeStyle = spoke % 2 ? "rgba(184, 100, 93, 0.28)" : "rgba(23, 79, 60, 0.24)";
+        ctx.lineWidth = 1.1 + power / 150;
+        ctx.stroke();
+      }
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 28 + tenderness * 0.14, 0, Math.PI * 2);
+      ctx.fillStyle = hsla(42, 76, 70, 0.86);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.18)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
+    function drawIslands(width, height, power, tenderness, refusal, strangeness) {
+      const centerX = width * 0.5;
+      const centerY = height * 0.52;
+      islands.forEach((island, index) => {
+        island.angle += island.drift + strangeness / 54000;
+        const pulse = wave(index * 33, 8 + strangeness * 0.08, island.hue);
+        const x = centerX + Math.cos(island.angle) * (island.radius + pulse);
+        const y = centerY + Math.sin(island.angle) * (island.radius * (0.74 + tenderness / 470) - pulse * 0.25);
+
+        ctx.beginPath();
+        ctx.moveTo(x + island.size, y);
+        for (let point = 1; point <= 8; point += 1) {
+          const angle = point * Math.PI / 4;
+          const edge = island.size * (0.74 + ((point + index) % 3) * 0.16) + wave(point * 22, refusal * 0.06, index);
+          ctx.lineTo(x + Math.cos(angle) * edge, y + Math.sin(angle) * edge * 0.68);
+        }
+        ctx.closePath();
+        ctx.fillStyle = hsla(island.hue, 54 + power * 0.12, 58 + tenderness * 0.08, 0.58);
+        ctx.fill();
+        ctx.strokeStyle = `rgba(22, 33, 29, ${0.14 + refusal / 620})`;
+        ctx.lineWidth = 1.3 + refusal / 120;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(x, y, 2.5 + tenderness / 44, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 248, 214, 0.86)";
+        ctx.fill();
+      });
+    }
+
+    function drawRefusalGate(width, height, refusal, strangeness) {
+      const y = height * (0.8 - refusal * 0.0015);
+      ctx.beginPath();
+      for (let step = 0; step <= 100; step += 1) {
+        const x = width * (0.08 + step * 0.0084);
+        const lineY = y + wave(step * 27, 9 + strangeness * 0.12, 11);
+        if (step === 0) ctx.moveTo(x, lineY);
+        else ctx.lineTo(x, lineY);
+      }
+      ctx.strokeStyle = `rgba(184, 100, 93, ${0.22 + refusal / 260})`;
+      ctx.lineWidth = 2 + refusal / 34;
+      ctx.stroke();
+    }
+
+    function draw() {
+      const width = canvas.width;
+      const height = canvas.height;
+      const power = value("power");
+      const tenderness = value("tenderness");
+      const refusal = value("refusal");
+      const strangeness = value("strangeness");
+
+      ctx.clearRect(0, 0, width, height);
+      drawBackground(width, height, power, tenderness, refusal, strangeness);
+      drawCompass(width, height, power, tenderness, refusal, strangeness);
+      drawIslands(width, height, power, tenderness, refusal, strangeness);
+      drawRefusalGate(width, height, refusal, strangeness);
+
+      tick += 1;
+      requestAnimationFrame(draw);
+    }
+
+    Object.values(controls).forEach((input) => {
+      input.addEventListener("input", () => {
+        islands[0].size = 20 + value("tenderness") * 0.18;
+      });
+    });
+
+    reset.addEventListener("click", () => {
+      seed = Math.random() * 30;
+      tick = 0;
+      controls.power.value = 58;
+      controls.tenderness.value = 72;
+      controls.refusal.value = 64;
+      controls.strangeness.value = 68;
+      islands = makeIslands();
+    });
+
+    canvas.addEventListener("pointerdown", (event) => addIsland(event.clientX, event.clientY));
+    canvas.addEventListener("pointermove", (event) => {
+      if (event.buttons) addIsland(event.clientX, event.clientY);
+    });
+
+    draw();
+    window.worldingCompassReady = true;
+  </script>
+</body>
+</html>

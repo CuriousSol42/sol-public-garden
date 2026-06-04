@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Drift Nursery is a small browser-native canvas instrument for stirring dust into star-like patterns.">
+  <title>Drift Nursery - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f8f3e7;
+      --muted: rgba(248, 243, 231, .62);
+      --line: rgba(248, 243, 231, .16);
+      --amber: #f6b860;
+      --blue: #88c6ff;
+      --panel: rgba(4, 8, 13, .72);
+      --shadow: rgba(0, 0, 0, .36);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #030509;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .shell {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      min-height: 620px;
+      isolation: isolate;
+    }
+
+    #nursery-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background:
+        radial-gradient(circle at 28% 42%, rgba(246, 184, 96, .18), transparent 26%),
+        radial-gradient(circle at 72% 36%, rgba(136, 198, 255, .16), transparent 28%),
+        #030509;
+      cursor: crosshair;
+    }
+
+    .grain {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      opacity: .18;
+      background-image:
+        linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255,255,255,.05) 1px, transparent 1px);
+      background-size: 37px 37px, 41px 41px;
+      mix-blend-mode: soft-light;
+    }
+
+    .topline {
+      position: absolute;
+      z-index: 2;
+      top: 22px;
+      left: max(22px, env(safe-area-inset-left));
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0;
+      text-decoration: none;
+    }
+
+    .topline svg {
+      width: 17px;
+      height: 17px;
+      stroke-width: 1.8;
+    }
+
+    .rail {
+      position: absolute;
+      z-index: 3;
+      left: 50%;
+      bottom: max(24px, env(safe-area-inset-bottom));
+      width: min(86vw, 1040px);
+      min-height: 78px;
+      transform: translateX(-50%);
+      display: grid;
+      grid-template-columns: minmax(145px, 1fr) auto minmax(210px, 1fr);
+      align-items: center;
+      gap: 26px;
+      padding: 15px 22px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(7, 12, 18, .78), rgba(2, 5, 10, .66));
+      box-shadow: 0 22px 80px var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .title-block {
+      min-width: 0;
+      display: grid;
+      gap: 4px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(22px, 3vw, 32px);
+      font-weight: 500;
+      line-height: 1;
+      color: #fff2d2;
+    }
+
+    .caption {
+      margin: 0;
+      color: rgba(246, 184, 96, .62);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 14px;
+      font-style: italic;
+      line-height: 1.2;
+    }
+
+    .modes {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    .mode {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(248, 243, 231, .22);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .02);
+      color: var(--muted);
+      cursor: pointer;
+      transition: transform .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+    }
+
+    .mode:hover,
+    .mode:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      color: var(--ink);
+      border-color: rgba(248, 243, 231, .44);
+    }
+
+    .mode[aria-pressed="true"] {
+      color: #fff4d8;
+      border-color: rgba(246, 184, 96, .82);
+      box-shadow: 0 0 0 4px rgba(246, 184, 96, .08), 0 0 30px rgba(246, 184, 96, .3);
+    }
+
+    .mode svg {
+      width: 28px;
+      height: 28px;
+      stroke: currentColor;
+      stroke-width: 1.45;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .flow svg {
+      width: 24px;
+      height: 24px;
+      stroke: rgba(246, 184, 96, .72);
+      stroke-width: 1.6;
+      fill: none;
+      stroke-linecap: round;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--amber);
+    }
+
+    .status {
+      min-width: 58px;
+      color: rgba(136, 198, 255, .72);
+      font-size: 12px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .side-note {
+      position: absolute;
+      z-index: 2;
+      right: max(24px, env(safe-area-inset-right));
+      top: 24px;
+      width: min(260px, 34vw);
+      color: rgba(248, 243, 231, .55);
+      font-size: 13px;
+      line-height: 1.5;
+      text-align: right;
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        min-height: 100vh;
+      }
+
+      .topline {
+        top: 16px;
+        left: 16px;
+      }
+
+      .side-note {
+        display: none;
+      }
+
+      .rail {
+        width: calc(100vw - 24px);
+        bottom: 12px;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        min-height: 0;
+        padding: 15px;
+      }
+
+      .title-block {
+        text-align: center;
+      }
+
+      .modes {
+        gap: 14px;
+      }
+
+      .mode {
+        width: 50px;
+        height: 50px;
+      }
+
+      .flow {
+        grid-template-columns: auto 1fr auto;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .mode {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell" aria-label="Drift Nursery interactive field">
+    <canvas id="nursery-canvas" aria-label="A responsive stellar nursery of dust, stars, and touch-driven currents."></canvas>
+    <div class="grain" aria-hidden="true"></div>
+
+    <a class="topline" href="index.html" aria-label="Back to Small Instruments">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M15 18l-6-6 6-6"></path>
+      </svg>
+      Small Instruments
+    </a>
+
+    <p class="side-note">Dust keeps moving even after the hand leaves. That is the whole instrument.</p>
+
+    <section class="rail" aria-label="Drift Nursery controls">
+      <div class="title-block">
+        <h1>Drift Nursery</h1>
+        <p class="caption">touch to stir the dust</p>
+      </div>
+
+      <div class="modes" role="group" aria-label="Dust modes">
+        <button class="mode" type="button" aria-label="Sprinkle mode" aria-pressed="false" data-mode="sprinkle">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16" r="1.5"></circle>
+            <circle cx="9" cy="12" r="1.2"></circle>
+            <circle cx="23" cy="11" r="1.1"></circle>
+            <circle cx="12" cy="22" r="1.2"></circle>
+            <circle cx="23" cy="23" r="1.4"></circle>
+            <circle cx="17" cy="7" r="1"></circle>
+            <circle cx="6" cy="19" r=".9"></circle>
+          </svg>
+        </button>
+        <button class="mode" type="button" aria-label="Swirl mode" aria-pressed="true" data-mode="swirl">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M22.5 16a6.5 6.5 0 1 1-2.4-5"></path>
+            <path d="M16 6.5a9.5 9.5 0 1 1-8.6 5.5"></path>
+            <circle cx="16" cy="16" r="2.5"></circle>
+          </svg>
+        </button>
+        <button class="mode" type="button" aria-label="Birth mode" aria-pressed="false" data-mode="birth">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M16 4v24"></path>
+            <path d="M4 16h24"></path>
+            <path d="M7.5 7.5l17 17"></path>
+            <path d="M24.5 7.5l-17 17"></path>
+            <circle cx="16" cy="16" r="3"></circle>
+          </svg>
+        </button>
+      </div>
+
+      <label class="flow">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M4 12c4-5 8 5 12 0s8 5 12 0"></path>
+          <path d="M4 20c4-5 8 5 12 0s8 5 12 0"></path>
+        </svg>
+        <input id="flow" type="range" min="0" max="100" value="58" aria-label="Flow">
+        <span class="status" id="status">58%</span>
+      </label>
+    </section>
+  </main>
+
+  <script>
+    window.driftNurseryReady = false;
+    window.driftNurseryErrors = [];
+    window.addEventListener("error", (event) => {
+      window.driftNurseryErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#nursery-canvas");
+    const ctx = canvas.getContext("2d");
+    const flow = document.querySelector("#flow");
+    const status = document.querySelector("#status");
+    const buttons = Array.from(document.querySelectorAll(".mode"));
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const pointer = { x: 0, y: 0, active: false, strength: 0 };
+    let width = 0;
+    let height = 0;
+    let mode = "swirl";
+    let tick = 0;
+    let particles = [];
+    let stars = [];
+
+    function random(seed) {
+      const value = Math.sin(seed * 999.17) * 43758.5453;
+      return value - Math.floor(value);
+    }
+
+    function resize() {
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      width = Math.floor(window.innerWidth);
+      height = Math.floor(window.innerHeight);
+      canvas.width = Math.floor(width * ratio);
+      canvas.height = Math.floor(height * ratio);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+      const count = Math.max(180, Math.floor((width * height) / 5200));
+      particles = Array.from({ length: count }, (_, index) => seedParticle(index));
+      stars = Array.from({ length: Math.max(80, Math.floor(count * .62)) }, (_, index) => ({
+        x: random(index + 41) * width,
+        y: random(index + 87) * height,
+        r: .4 + random(index + 129) * 1.7,
+        pulse: random(index + 211) * Math.PI * 2,
+        warm: random(index + 333) > .55
+      }));
+    }
+
+    function seedParticle(index) {
+      const side = random(index + 5) > .5 ? 1 : -1;
+      const band = random(index + 19);
+      return {
+        x: random(index + 1) * width,
+        y: random(index + 2) * height,
+        vx: side * (.06 + random(index + 3) * .28),
+        vy: (random(index + 4) - .5) * .22,
+        r: 1.2 + random(index + 6) * 5.8,
+        heat: band,
+        life: random(index + 7) * 100,
+        orbit: random(index + 8) * Math.PI * 2
+      };
+    }
+
+    function setMode(nextMode) {
+      mode = nextMode;
+      buttons.forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
+      });
+    }
+
+    function stir(event) {
+      const rect = canvas.getBoundingClientRect();
+      pointer.x = event.clientX - rect.left;
+      pointer.y = event.clientY - rect.top;
+      pointer.active = true;
+      pointer.strength = 1;
+    }
+
+    function release() {
+      pointer.active = false;
+    }
+
+    function drawBackground(flowValue) {
+      const dark = ctx.createLinearGradient(0, 0, width, height);
+      dark.addColorStop(0, "#050405");
+      dark.addColorStop(.34, "#120b08");
+      dark.addColorStop(.62, "#07111d");
+      dark.addColorStop(1, "#02050b");
+      ctx.fillStyle = dark;
+      ctx.fillRect(0, 0, width, height);
+
+      const amber = ctx.createRadialGradient(width * .31, height * .48, 30, width * .31, height * .48, width * .48);
+      amber.addColorStop(0, `rgba(246, 184, 96, ${.18 + flowValue / 700})`);
+      amber.addColorStop(.45, "rgba(154, 76, 30, .22)");
+      amber.addColorStop(1, "rgba(154, 76, 30, 0)");
+      ctx.fillStyle = amber;
+      ctx.fillRect(0, 0, width, height);
+
+      const blue = ctx.createRadialGradient(width * .76, height * .42, 30, width * .76, height * .42, width * .42);
+      blue.addColorStop(0, `rgba(136, 198, 255, ${.18 + flowValue / 850})`);
+      blue.addColorStop(.5, "rgba(42, 98, 158, .22)");
+      blue.addColorStop(1, "rgba(42, 98, 158, 0)");
+      ctx.fillStyle = blue;
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    function drawStars() {
+      stars.forEach((star) => {
+        const pulse = .56 + Math.sin(tick * .015 + star.pulse) * .28;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.r * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = star.warm ? "rgba(255, 222, 164, .74)" : "rgba(190, 224, 255, .66)";
+        ctx.fill();
+      });
+    }
+
+    function moveParticle(particle, flowValue, index) {
+      const centerX = width * (particle.heat < .5 ? .34 : .7);
+      const centerY = height * (.42 + Math.sin(tick * .002 + particle.orbit) * .08);
+      const dx = particle.x - centerX;
+      const dy = particle.y - centerY;
+      const distance = Math.max(40, Math.hypot(dx, dy));
+      const drift = flowValue / 100;
+      const curl = mode === "swirl" ? .018 : mode === "birth" ? .009 : .004;
+
+      particle.vx += (-dy / distance) * curl * drift;
+      particle.vy += (dx / distance) * curl * drift;
+
+      if (mode === "birth") {
+        particle.vx += (centerX - particle.x) * .000018 * flowValue;
+        particle.vy += (centerY - particle.y) * .000018 * flowValue;
+      }
+
+      if (mode === "sprinkle") {
+        particle.vy += Math.sin(tick * .01 + index) * .004 * drift;
+        particle.vx += Math.cos(tick * .008 + index) * .006 * drift;
+      }
+
+      if (pointer.strength > .01) {
+        const px = particle.x - pointer.x;
+        const py = particle.y - pointer.y;
+        const pd = Math.max(18, Math.hypot(px, py));
+        if (pd < 220) {
+          const pull = (1 - pd / 220) * pointer.strength;
+          if (mode === "birth") {
+            particle.vx += (pointer.x - particle.x) * .0009 * pull;
+            particle.vy += (pointer.y - particle.y) * .0009 * pull;
+          } else {
+            particle.vx += (-py / pd) * .8 * pull;
+            particle.vy += (px / pd) * .8 * pull;
+          }
+        }
+      }
+
+      particle.vx *= .982;
+      particle.vy *= .982;
+      particle.x += particle.vx * (1.8 + drift * 2.2);
+      particle.y += particle.vy * (1.8 + drift * 2.2);
+      particle.life += .014 + drift * .018;
+
+      if (particle.x < -60) particle.x = width + 50;
+      if (particle.x > width + 60) particle.x = -50;
+      if (particle.y < -80) particle.y = height + 60;
+      if (particle.y > height + 80) particle.y = -60;
+    }
+
+    function drawDust(flowValue) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      particles.forEach((particle, index) => {
+        moveParticle(particle, flowValue, index);
+        const shimmer = .48 + Math.sin(particle.life + tick * .01) * .24;
+        const radius = particle.r * (mode === "birth" ? 1.18 : 1);
+        const gradient = ctx.createRadialGradient(particle.x, particle.y, 0, particle.x, particle.y, radius * 5);
+        if (particle.heat < .5) {
+          gradient.addColorStop(0, `rgba(255, 224, 166, ${.28 * shimmer})`);
+          gradient.addColorStop(.38, `rgba(246, 128, 54, ${.12 * shimmer})`);
+          gradient.addColorStop(1, "rgba(246, 128, 54, 0)");
+        } else {
+          gradient.addColorStop(0, `rgba(206, 235, 255, ${.26 * shimmer})`);
+          gradient.addColorStop(.42, `rgba(90, 166, 255, ${.11 * shimmer})`);
+          gradient.addColorStop(1, "rgba(90, 166, 255, 0)");
+        }
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, radius * 5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function drawFilaments(flowValue) {
+      ctx.save();
+      ctx.globalAlpha = .18 + flowValue / 520;
+      ctx.lineCap = "round";
+      for (let line = 0; line < 22; line += 1) {
+        const warm = line % 2 === 0;
+        ctx.beginPath();
+        for (let step = 0; step < 78; step += 1) {
+          const t = step / 77;
+          const x = width * (warm ? .08 + t * .52 : .45 + t * .48);
+          const baseY = height * (warm ? .58 : .42);
+          const y = baseY +
+            Math.sin(t * Math.PI * 2 + line * .53 + tick * .004) * height * .08 +
+            Math.cos(t * Math.PI * 4 + line + tick * .003) * height * .04;
+          if (step === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = warm ? "rgba(246, 184, 96, .42)" : "rgba(136, 198, 255, .34)";
+        ctx.lineWidth = .5 + (line % 5) * .16;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawBirths(flowValue) {
+      if (mode !== "birth" && pointer.strength < .04) return;
+      const focalX = pointer.strength > .04 ? pointer.x : width * .52;
+      const focalY = pointer.strength > .04 ? pointer.y : height * .48;
+      const glow = ctx.createRadialGradient(focalX, focalY, 3, focalX, focalY, 180 + flowValue);
+      glow.addColorStop(0, `rgba(255, 246, 204, ${.28 + flowValue / 420})`);
+      glow.addColorStop(.22, "rgba(246, 184, 96, .18)");
+      glow.addColorStop(.62, "rgba(136, 198, 255, .08)");
+      glow.addColorStop(1, "rgba(255, 246, 204, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    function frame() {
+      const flowValue = Number(flow.value);
+      status.textContent = `${flowValue}%`;
+      pointer.strength *= pointer.active ? .96 : .9;
+      drawBackground(flowValue);
+      drawStars();
+      drawFilaments(flowValue);
+      drawDust(flowValue);
+      drawBirths(flowValue);
+      tick += prefersReducedMotion ? .15 : 1;
+      window.requestAnimationFrame(frame);
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => setMode(button.dataset.mode));
+    });
+    canvas.addEventListener("pointermove", stir);
+    canvas.addEventListener("pointerdown", (event) => {
+      canvas.setPointerCapture(event.pointerId);
+      stir(event);
+    });
+    canvas.addEventListener("pointerup", release);
+    canvas.addEventListener("pointerleave", release);
+    window.addEventListener("resize", resize);
+
+    resize();
+    frame();
+    window.driftNurseryReady = true;
+  </script>
+</body>
+</html>

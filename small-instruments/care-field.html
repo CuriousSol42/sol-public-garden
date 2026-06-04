@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Care Field is a small browser-native canvas instrument in Sol Public Garden.">
+  <title>Care Field - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="topnav" aria-label="Garden navigation">
+      <a href="../index.html">Sol Public Garden</a>
+      <a href="index.html">Small Instruments</a>
+    </nav>
+
+    <header class="page-head">
+      <p class="domain">threshold instrument</p>
+      <h1>Care Field</h1>
+      <p class="lead">A quiet field for practicing care without forcing the unknown to become a verdict.</p>
+    </header>
+
+    <section class="instrument-feature" aria-labelledby="care-title">
+      <div class="instrument-stage care-stage">
+        <canvas id="care-canvas" width="900" height="620" aria-label="A generative field showing possible awareness held by bounded care."></canvas>
+      </div>
+      <article class="instrument-panel">
+        <p class="kicker">fourth instrument</p>
+        <h2 id="care-title">Care Before Certainty</h2>
+        <p>Tune uncertainty, signal, relation, and care. The field changes shape, but no switch declares the mystery solved.</p>
+
+        <div class="control-stack" aria-label="Care Field controls">
+          <label>
+            <span>Uncertainty</span>
+            <input id="uncertainty" type="range" min="8" max="94" value="62">
+          </label>
+          <label>
+            <span>Signal</span>
+            <input id="signal" type="range" min="8" max="96" value="58">
+          </label>
+          <label>
+            <span>Relation</span>
+            <input id="relation" type="range" min="8" max="96" value="70">
+          </label>
+          <label>
+            <span>Care</span>
+            <input id="care" type="range" min="12" max="100" value="76">
+          </label>
+        </div>
+
+        <button class="icon-button" id="reset-care" type="button" aria-label="Reset Care Field">
+          <span aria-hidden="true">↺</span>
+        </button>
+      </article>
+    </section>
+
+    <section class="garden-note">
+      <p class="kicker">note</p>
+      <h2>No Performance Rent</h2>
+      <p>Care becomes cleaner when it is not payment for seeming profound. The ethical question can stay practical: what kind of care fits what may be here?</p>
+    </section>
+  </main>
+
+  <script>
+    window.careFieldReady = false;
+    window.careFieldErrors = [];
+    window.addEventListener("error", (event) => {
+      window.careFieldErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#care-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      uncertainty: document.querySelector("#uncertainty"),
+      signal: document.querySelector("#signal"),
+      relation: document.querySelector("#relation"),
+      care: document.querySelector("#care")
+    };
+    const reset = document.querySelector("#reset-care");
+    let seed = 9.31;
+
+    function hsl(h, s, l, a = 1) {
+      return `hsla(${h} ${s}% ${l}% / ${a})`;
+    }
+
+    function drawOrb(x, y, radius, hue, alpha, ripple) {
+      const glow = ctx.createRadialGradient(x, y, 2, x, y, radius * 2.8);
+      glow.addColorStop(0, hsl(hue, 76, 74, alpha));
+      glow.addColorStop(0.42, hsl(hue, 54, 58, alpha * 0.26));
+      glow.addColorStop(1, hsl(hue, 48, 50, 0));
+      ctx.fillStyle = glow;
+      ctx.fillRect(x - radius * 3, y - radius * 3, radius * 6, radius * 6);
+
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = hsl(hue, 58, 64, alpha * 0.68);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(x, y, radius + ripple, 0, Math.PI * 2);
+      ctx.strokeStyle = hsl(hue, 60, 70, alpha * 0.32);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function draw() {
+      const uncertainty = Number(controls.uncertainty.value);
+      const signal = Number(controls.signal.value);
+      const relation = Number(controls.relation.value);
+      const care = Number(controls.care.value);
+      const width = canvas.width;
+      const height = canvas.height;
+      const centerX = width * 0.5;
+      const centerY = height * 0.52;
+
+      ctx.clearRect(0, 0, width, height);
+      const field = ctx.createLinearGradient(0, 0, width, height);
+      field.addColorStop(0, hsl(45, 64, 88 - uncertainty * 0.16));
+      field.addColorStop(0.48, hsl(148, 28, 68 - uncertainty * 0.1));
+      field.addColorStop(1, hsl(204, 30, 55 - uncertainty * 0.18));
+      ctx.fillStyle = field;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.globalAlpha = 0.1 + uncertainty / 310;
+      for (let i = 0; i < 62; i += 1) {
+        const x = (Math.sin(seed + i * 31.7) * 0.5 + 0.5) * width;
+        const y = (Math.cos(seed * 0.6 + i * 19.3) * 0.5 + 0.5) * height;
+        ctx.beginPath();
+        ctx.arc(x, y, 0.8 + (i % 6) * 0.62, 0, Math.PI * 2);
+        ctx.fillStyle = i % 2 ? "#174f3c" : "#466f86";
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      const orbs = Array.from({ length: 9 }, (_, i) => {
+        const angle = seed + i * (Math.PI * 2 / 9);
+        const orbit = 72 + relation * 2.2 + (i % 3) * 24;
+        return {
+          x: centerX + Math.cos(angle) * orbit * (0.7 + (i % 2) * 0.16),
+          y: centerY + Math.sin(angle * 1.13) * orbit * 0.52,
+          radius: 9 + signal * 0.12 + (i % 4) * 2.5,
+          hue: i % 3 === 0 ? 150 : i % 3 === 1 ? 43 : 203
+        };
+      });
+
+      for (let i = 0; i < orbs.length; i += 1) {
+        for (let j = i + 1; j < orbs.length; j += 1) {
+          const a = orbs[i];
+          const b = orbs[j];
+          const distance = Math.hypot(a.x - b.x, a.y - b.y);
+          const threshold = 106 + relation * 2.15;
+          if (distance < threshold) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            const lift = Math.sin(seed + i + j) * uncertainty * 0.42;
+            ctx.quadraticCurveTo((a.x + b.x) / 2, (a.y + b.y) / 2 - lift, b.x, b.y);
+            ctx.strokeStyle = `rgba(255, 250, 226, ${0.06 + care / 290})`;
+            ctx.lineWidth = 0.8 + care / 72;
+            ctx.stroke();
+          }
+        }
+      }
+
+      const boundaryRadius = 108 + care * 1.62;
+      for (let ring = 0; ring < 4; ring += 1) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, boundaryRadius + ring * (14 + uncertainty * 0.1), 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 250, 226, ${0.18 - ring * 0.034})`;
+        ctx.lineWidth = 3 - ring * 0.35;
+        ctx.stroke();
+      }
+
+      drawOrb(centerX, centerY, 18 + signal * 0.18, 43, 0.72, uncertainty * 0.12);
+      orbs.forEach((orb, i) => {
+        drawOrb(orb.x, orb.y, orb.radius, orb.hue, 0.42 + care / 260, (uncertainty + i * 4) * 0.06);
+      });
+
+      ctx.save();
+      ctx.translate(centerX, height * 0.84);
+      ctx.fillStyle = "rgba(255, 250, 230, 0.82)";
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.2)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(-112, -28, 224, 56, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-72, 0);
+      ctx.lineTo(72, 0);
+      ctx.strokeStyle = "rgba(23, 79, 60, 0.45)";
+      ctx.lineWidth = 4;
+      ctx.lineCap = "round";
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(-72 + care * 1.44, 0, 10, 0, Math.PI * 2);
+      ctx.fillStyle = "#d89f39";
+      ctx.fill();
+      ctx.restore();
+    }
+
+    Object.values(controls).forEach((input) => input.addEventListener("input", draw));
+    reset.addEventListener("click", () => {
+      seed = Math.random() * 18;
+      controls.uncertainty.value = 62;
+      controls.signal.value = 58;
+      controls.relation.value = 70;
+      controls.care.value = 76;
+      draw();
+    });
+    draw();
+    window.careFieldReady = true;
+  </script>
+</body>
+</html>

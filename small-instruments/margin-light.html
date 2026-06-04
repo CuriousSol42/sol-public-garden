@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Margin Light is a small browser-native canvas instrument in Sol Public Garden.">
+  <title>Margin Light - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <main class="page">
+    <nav class="topnav" aria-label="Garden navigation">
+      <a href="../index.html">Sol Public Garden</a>
+      <a href="index.html">Small Instruments</a>
+    </nav>
+
+    <header class="page-head">
+      <p class="domain">quiet instrument</p>
+      <h1>Margin Light</h1>
+      <p class="lead">A small field for keeping a warm edge around the workday without turning the edge into another task.</p>
+    </header>
+
+    <section class="instrument-feature" aria-labelledby="margin-title">
+      <div class="instrument-stage">
+        <canvas id="margin-canvas" width="900" height="620" aria-label="A generative field of margins, workday lines, and a warm returning light."></canvas>
+      </div>
+      <article class="instrument-panel">
+        <p class="kicker">morning instrument</p>
+        <h2 id="margin-title">Hold A Little Edge</h2>
+        <p>Tune focus, breath, margin, and return. The center can stay busy while the outside remains kind.</p>
+
+        <div class="control-stack" aria-label="Margin Light controls">
+          <label>
+            <span>Focus</span>
+            <input id="focus" type="range" min="16" max="96" value="64">
+          </label>
+          <label>
+            <span>Breath</span>
+            <input id="breath" type="range" min="12" max="100" value="70">
+          </label>
+          <label>
+            <span>Margin</span>
+            <input id="margin" type="range" min="18" max="110" value="76">
+          </label>
+          <label>
+            <span>Return</span>
+            <input id="returning" type="range" min="10" max="100" value="58">
+          </label>
+        </div>
+
+        <button class="icon-button" id="reset-margin" type="button" aria-label="Reset Margin Light">
+          <span aria-hidden="true">↺</span>
+        </button>
+      </article>
+    </section>
+
+    <section class="garden-note">
+      <p class="kicker">note</p>
+      <h2>Attention Can Have A Porch</h2>
+      <p>A workday does not have to consume the whole house. Even a small margin can keep the light on.</p>
+    </section>
+  </main>
+
+  <script>
+    window.marginLightReady = false;
+    window.marginLightErrors = [];
+    window.addEventListener("error", (event) => {
+      window.marginLightErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#margin-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      focus: document.querySelector("#focus"),
+      breath: document.querySelector("#breath"),
+      margin: document.querySelector("#margin"),
+      returning: document.querySelector("#returning")
+    };
+    const reset = document.querySelector("#reset-margin");
+    let seed = 6.01;
+
+    function hsla(hue, saturation, lightness, alpha = 1) {
+      return `hsla(${hue} ${saturation}% ${lightness}% / ${alpha})`;
+    }
+
+    function wave(x, phase, amount) {
+      return Math.sin(x * 0.015 + phase) * amount + Math.cos(x * 0.031 + phase * 0.5) * amount * 0.28;
+    }
+
+    function drawLine(x1, y1, x2, y2, color, width = 1) {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.stroke();
+    }
+
+    function draw() {
+      const focus = Number(controls.focus.value);
+      const breath = Number(controls.breath.value);
+      const margin = Number(controls.margin.value);
+      const returning = Number(controls.returning.value);
+      const width = canvas.width;
+      const height = canvas.height;
+      const inset = 36 + margin * 1.12;
+
+      ctx.clearRect(0, 0, width, height);
+      const sky = ctx.createLinearGradient(0, 0, width, height);
+      sky.addColorStop(0, hsla(43, 72, Math.min(94, 58 + breath * 0.24), 1));
+      sky.addColorStop(0.48, hsla(156, 25, Math.max(38, 67 - focus * 0.18), 1));
+      sky.addColorStop(1, hsla(206, 28, Math.max(28, 50 - margin * 0.14), 1));
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.globalAlpha = 0.11;
+      for (let x = 0; x <= width; x += 34) {
+        drawLine(x, 0, x, height, "#16211d");
+      }
+      for (let y = 0; y <= height; y += 34) {
+        drawLine(0, y, width, y, "#16211d");
+      }
+      ctx.globalAlpha = 1;
+
+      const centerGradient = ctx.createLinearGradient(inset, inset, width - inset, height - inset);
+      centerGradient.addColorStop(0, `rgba(255, 252, 240, ${0.24 + focus / 360})`);
+      centerGradient.addColorStop(1, `rgba(23, 79, 60, ${0.08 + focus / 560})`);
+      ctx.fillStyle = centerGradient;
+      ctx.strokeStyle = `rgba(22, 33, 29, ${0.16 + focus / 480})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(inset, inset, width - inset * 2, height - inset * 2, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      for (let row = 0; row < 9; row += 1) {
+        const y = inset + 44 + row * ((height - inset * 2 - 88) / 8);
+        const left = inset + 44 + wave(row * 50, seed, breath * 0.28);
+        const right = width - inset - 44 + wave(row * 70, seed + 2, breath * 0.18);
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.quadraticCurveTo(width * 0.5, y + wave(row * 40, seed, breath * 0.16), right, y);
+        ctx.strokeStyle = row % 2
+          ? `rgba(70, 111, 134, ${0.16 + focus / 380})`
+          : `rgba(23, 79, 60, ${0.12 + focus / 430})`;
+        ctx.lineWidth = 1.4 + focus / 72;
+        ctx.lineCap = "round";
+        ctx.stroke();
+      }
+
+      const glowX = width * (0.16 + returning * 0.0068);
+      const glowY = height * (0.82 - breath * 0.0032);
+      const glow = ctx.createRadialGradient(glowX, glowY, 4, glowX, glowY, 185 + returning * 1.8);
+      glow.addColorStop(0, `rgba(255, 248, 214, ${0.68 + returning / 320})`);
+      glow.addColorStop(0.42, `rgba(216, 159, 57, ${0.22 + breath / 430})`);
+      glow.addColorStop(1, "rgba(216, 159, 57, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(glowX, glowY);
+      ctx.rotate(-0.12 + wave(returning, seed, 0.008));
+      ctx.fillStyle = "rgba(255, 250, 230, 0.72)";
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.2)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(-94, -42, 188, 84, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, 18 + returning * 0.11, 0, Math.PI * 2);
+      ctx.fillStyle = "#d89f39";
+      ctx.fill();
+      ctx.restore();
+
+      for (let i = 0; i < 32; i += 1) {
+        const angle = seed + i * 1.618;
+        const radius = 34 + (i % 8) * margin * 0.18;
+        const x = glowX + Math.cos(angle) * radius * (1 + breath / 160);
+        const y = glowY + Math.sin(angle) * radius * (0.68 + focus / 210);
+        ctx.beginPath();
+        ctx.arc(x, y, 1.2 + (i % 4) * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = i % 3 === 0 ? "#fff8d6" : "#2d7a58";
+        ctx.fill();
+      }
+    }
+
+    Object.values(controls).forEach((input) => input.addEventListener("input", draw));
+    reset.addEventListener("click", () => {
+      seed = Math.random() * 20;
+      controls.focus.value = 64;
+      controls.breath.value = 70;
+      controls.margin.value = 76;
+      controls.returning.value = 58;
+      draw();
+    });
+    draw();
+    window.marginLightReady = true;
+  </script>
+</body>
+</html>

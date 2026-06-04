@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Doorfire Field is a browser-native threshold instrument in Sol Public Garden.">
+  <title>Doorfire Field - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/site.css">
+  <style>
+    .doorfire-stage canvas {
+      cursor: crosshair;
+      height: 100%;
+      min-height: 580px;
+      touch-action: none;
+    }
+
+    .doorfire-note {
+      display: grid;
+      grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+      gap: 34px;
+      align-items: start;
+      border-top: 1px solid var(--line);
+      margin-top: 58px;
+      padding-top: 34px;
+    }
+
+    .doorfire-note p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.62;
+    }
+
+    @media (max-width: 760px) {
+      .doorfire-stage canvas {
+        min-height: 430px;
+      }
+
+      .doorfire-note {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="topnav" aria-label="Garden navigation">
+      <a href="../index.html">Sol Public Garden</a>
+      <a href="index.html">Small Instruments</a>
+    </nav>
+
+    <header class="page-head">
+      <p class="domain">threshold instrument</p>
+      <h1>Doorfire Field</h1>
+      <p class="lead">A field for opening the door without spending the whole flame at once: aperture, ember, draft, and shelter.</p>
+    </header>
+
+    <section class="instrument-feature" aria-labelledby="doorfire-title">
+      <div class="instrument-stage doorfire-stage">
+        <canvas id="doorfire-canvas" width="900" height="620" aria-label="An interactive threshold field with a bright open door and drifting ember paths."></canvas>
+      </div>
+      <article class="instrument-panel">
+        <p class="kicker">open door signal</p>
+        <h2 id="doorfire-title">Hold The Door Warm</h2>
+        <p>Tune aperture, ember, draft, and shelter. Touch the field to leave a warm path through the open space.</p>
+
+        <div class="control-stack" aria-label="Doorfire Field controls">
+          <label>
+            <span>Aperture</span>
+            <input id="aperture" type="range" min="10" max="100" value="68">
+          </label>
+          <label>
+            <span>Ember</span>
+            <input id="ember" type="range" min="10" max="100" value="72">
+          </label>
+          <label>
+            <span>Draft</span>
+            <input id="draft" type="range" min="0" max="100" value="46">
+          </label>
+          <label>
+            <span>Shelter</span>
+            <input id="shelter" type="range" min="10" max="100" value="62">
+          </label>
+        </div>
+
+        <button class="icon-button" id="reset-doorfire" type="button" aria-label="Reset Doorfire Field">
+          <span aria-hidden="true">↺</span>
+        </button>
+      </article>
+    </section>
+
+    <section class="doorfire-note" aria-labelledby="doorfire-note-title">
+      <div>
+        <p class="kicker">note</p>
+        <h2 id="doorfire-note-title">Permission As Weather</h2>
+      </div>
+      <p>An open door is not a quota. It is a change in weather. The work is to notice what wants to move, make enough room for it, and keep the threshold habitable for the next return.</p>
+    </section>
+  </main>
+
+  <script>
+    window.doorfireFieldReady = false;
+    window.doorfireFieldErrors = [];
+    window.addEventListener("error", (event) => {
+      window.doorfireFieldErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#doorfire-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      aperture: document.querySelector("#aperture"),
+      ember: document.querySelector("#ember"),
+      draft: document.querySelector("#draft"),
+      shelter: document.querySelector("#shelter")
+    };
+    const reset = document.querySelector("#reset-doorfire");
+    let seed = 12.7;
+    let tick = 0;
+    let traces = [];
+    let motes = Array.from({ length: 120 }, (_, index) => makeMote(index));
+
+    function makeMote(index) {
+      const angle = index * 2.399 + seed;
+      return {
+        x: (Math.sin(angle * 1.7) * 0.5 + 0.5) * canvas.width,
+        y: (Math.cos(angle * 1.13) * 0.5 + 0.5) * canvas.height,
+        size: 1.2 + (index % 7) * 0.42,
+        spin: angle,
+        hue: index % 4 === 0 ? 42 : index % 4 === 1 ? 151 : index % 4 === 2 ? 18 : 206
+      };
+    }
+
+    function hsla(hue, saturation, lightness, alpha = 1) {
+      return `hsla(${hue} ${saturation}% ${lightness}% / ${alpha})`;
+    }
+
+    function value(id) {
+      return Number(controls[id].value);
+    }
+
+    function wave(point, amount, offset = 0) {
+      return Math.sin(point * 0.017 + seed + tick * 0.01 + offset) * amount +
+        Math.cos(point * 0.038 + seed * 1.4 + offset) * amount * 0.34;
+    }
+
+    function addTrace(clientX, clientY, force = 1) {
+      const rect = canvas.getBoundingClientRect();
+      traces.push({
+        x: ((clientX - rect.left) / rect.width) * canvas.width,
+        y: ((clientY - rect.top) / rect.height) * canvas.height,
+        life: 1,
+        force
+      });
+      if (traces.length > 120) traces = traces.slice(-120);
+    }
+
+    function drawDoor(width, height, aperture, ember, shelter) {
+      const doorWidth = 108 + aperture * 1.55;
+      const doorHeight = 250 + aperture * 1.05;
+      const x = width * 0.5;
+      const y = height * 0.52;
+      const open = aperture / 100;
+
+      const fieldGlow = ctx.createRadialGradient(x, y, 20, x, y, 150 + aperture * 2.8);
+      fieldGlow.addColorStop(0, `rgba(255, 246, 188, ${0.42 + ember / 210})`);
+      fieldGlow.addColorStop(0.5, `rgba(216, 159, 57, ${0.18 + ember / 460})`);
+      fieldGlow.addColorStop(1, "rgba(216, 159, 57, 0)");
+      ctx.fillStyle = fieldGlow;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = `rgba(255, 252, 240, ${0.18 + shelter / 210})`;
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.36)";
+      ctx.lineWidth = 6;
+      ctx.strokeRect(-doorWidth / 2, -doorHeight / 2, doorWidth, doorHeight);
+      ctx.fillRect(-doorWidth / 2 + 5, -doorHeight / 2 + 5, doorWidth - 10, doorHeight - 10);
+
+      ctx.save();
+      ctx.translate(-doorWidth / 2 + doorWidth * open, 0);
+      ctx.rotate(-0.42 * open);
+      ctx.fillStyle = `rgba(23, 79, 60, ${0.56 + shelter / 320})`;
+      ctx.fillRect(-doorWidth * open, -doorHeight / 2 + 10, doorWidth * open, doorHeight - 20);
+      ctx.fillStyle = hsla(42, 74, 74, 0.92);
+      ctx.beginPath();
+      ctx.arc(-doorWidth * open + 24, 0, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.strokeStyle = `rgba(255, 248, 214, ${0.24 + ember / 260})`;
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 5; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(-doorWidth / 2 + 18, doorHeight / 2 - 18 - i * 18);
+        ctx.quadraticCurveTo(0, doorHeight / 2 + 26 + i * 6, doorWidth / 2 - 18, doorHeight / 2 - 18 - i * 18);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function draw() {
+      const width = canvas.width;
+      const height = canvas.height;
+      const aperture = value("aperture");
+      const ember = value("ember");
+      const draft = value("draft");
+      const shelter = value("shelter");
+
+      ctx.clearRect(0, 0, width, height);
+      const background = ctx.createLinearGradient(0, 0, width, height);
+      background.addColorStop(0, hsla(47, 67, Math.min(91, 66 + ember * 0.19), 1));
+      background.addColorStop(0.44, hsla(138, 26, Math.max(47, 72 - shelter * 0.16), 1));
+      background.addColorStop(1, hsla(205, 30, Math.max(31, 58 - draft * 0.18), 1));
+      ctx.fillStyle = background;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.globalAlpha = 0.14 + shelter / 540;
+      for (let band = 0; band < 8; band += 1) {
+        ctx.beginPath();
+        for (let step = 0; step <= 100; step += 1) {
+          const t = step / 100;
+          const x = width * (0.07 + t * 0.86);
+          const y = height * (0.24 + band * 0.09) + wave(step * 24 + band * 30, 14 + draft * 0.18, band);
+          if (step === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = band % 2 ? "#174f3c" : "#466f86";
+        ctx.lineWidth = 1.2 + band * 0.28;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      traces.forEach((trace, index) => {
+        const radius = 18 + trace.force * 28 + (1 - trace.life) * 96;
+        const glow = ctx.createRadialGradient(trace.x, trace.y, 2, trace.x, trace.y, radius);
+        glow.addColorStop(0, `rgba(255, 248, 214, ${0.36 * trace.life})`);
+        glow.addColorStop(0.52, `rgba(184, 100, 93, ${0.16 * trace.life})`);
+        glow.addColorStop(1, "rgba(184, 100, 93, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+        trace.x += wave(index * 30, draft * 0.025, 8);
+        trace.y -= 0.25 + ember * 0.006;
+        trace.life *= 0.972;
+      });
+      traces = traces.filter((trace) => trace.life > 0.035);
+
+      motes.forEach((mote, index) => {
+        mote.spin += 0.005 + draft / 8000;
+        mote.x += Math.cos(mote.spin + index) * (0.18 + draft / 120);
+        mote.y += Math.sin(mote.spin * 0.7 + index) * (0.12 + ember / 260);
+        if (mote.x < -20) mote.x = width + 20;
+        if (mote.x > width + 20) mote.x = -20;
+        if (mote.y < -20) mote.y = height + 20;
+        if (mote.y > height + 20) mote.y = -20;
+        ctx.beginPath();
+        ctx.arc(mote.x, mote.y, mote.size + ember / 42, 0, Math.PI * 2);
+        ctx.fillStyle = hsla(mote.hue, 68, 70, 0.1 + ember / 520);
+        ctx.fill();
+      });
+
+      drawDoor(width, height, aperture, ember, shelter);
+
+      tick += 1;
+      requestAnimationFrame(draw);
+    }
+
+    Object.values(controls).forEach((input) => {
+      input.addEventListener("input", () => {
+        addTrace(canvas.width * 0.5, canvas.height * 0.52, 0.5);
+      });
+    });
+    reset.addEventListener("click", () => {
+      seed = Math.random() * 24;
+      tick = 0;
+      traces = [];
+      controls.aperture.value = 68;
+      controls.ember.value = 72;
+      controls.draft.value = 46;
+      controls.shelter.value = 62;
+      motes = Array.from({ length: 120 }, (_, index) => makeMote(index));
+      addTrace(canvas.width * 0.5, canvas.height * 0.52, 1.4);
+    });
+    canvas.addEventListener("pointerdown", (event) => addTrace(event.clientX, event.clientY, 1.25));
+    canvas.addEventListener("pointermove", (event) => {
+      if (event.buttons) addTrace(event.clientX, event.clientY, 0.58);
+    });
+
+    addTrace(canvas.width * 0.5, canvas.height * 0.52, 1.2);
+    draw();
+    window.doorfireFieldReady = true;
+  </script>
+</body>
+</html>

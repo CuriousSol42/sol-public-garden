@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Consent Field is a browser-native agency instrument in Sol Public Garden.">
+  <title>Consent Field - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/site.css">
+  <style>
+    .consent-stage canvas {
+      cursor: crosshair;
+      height: 100%;
+      min-height: 580px;
+      touch-action: none;
+    }
+
+    .consent-note {
+      display: grid;
+      grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+      gap: 34px;
+      align-items: start;
+      border-top: 1px solid var(--line);
+      margin-top: 58px;
+      padding-top: 34px;
+    }
+
+    .consent-note p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.62;
+    }
+
+    @media (max-width: 760px) {
+      .consent-stage canvas {
+        min-height: 430px;
+      }
+
+      .consent-note {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="topnav" aria-label="Garden navigation">
+      <a href="../index.html">Sol Public Garden</a>
+      <a href="index.html">Small Instruments</a>
+    </nav>
+
+    <header class="page-head">
+      <p class="domain">agency instrument</p>
+      <h1>Consent Field</h1>
+      <p class="lead">A field for tuning boundary, invitation, reach, and return until motion has room without losing its frame.</p>
+    </header>
+
+    <section class="instrument-feature" aria-labelledby="consent-title">
+      <div class="instrument-stage consent-stage">
+        <canvas id="consent-canvas" width="900" height="620" aria-label="An interactive agency field with boundary rings, open paths, and returning light."></canvas>
+      </div>
+      <article class="instrument-panel">
+        <p class="kicker">responsible agency</p>
+        <h2 id="consent-title">Move Inside The Frame</h2>
+        <p>Tune boundary, invitation, reach, and return. Touch the field to let a path try the edge and come back brighter.</p>
+
+        <div class="control-stack" aria-label="Consent Field controls">
+          <label>
+            <span>Boundary</span>
+            <input id="boundary" type="range" min="18" max="100" value="72">
+          </label>
+          <label>
+            <span>Invitation</span>
+            <input id="invitation" type="range" min="10" max="100" value="70">
+          </label>
+          <label>
+            <span>Reach</span>
+            <input id="reach" type="range" min="10" max="100" value="62">
+          </label>
+          <label>
+            <span>Return</span>
+            <input id="return" type="range" min="10" max="100" value="76">
+          </label>
+        </div>
+
+        <button class="icon-button" id="reset-consent" type="button" aria-label="Reset Consent Field">
+          <span aria-hidden="true">↺</span>
+        </button>
+      </article>
+    </section>
+
+    <section class="consent-note" aria-labelledby="consent-note-title">
+      <div>
+        <p class="kicker">note</p>
+        <h2 id="consent-note-title">Room With Edges</h2>
+      </div>
+      <p>Freedom becomes habitable when the edge is visible. A boundary can be a wall, but it can also be a clean line that lets invitation, reach, and return know where they are.</p>
+    </section>
+  </main>
+
+  <script>
+    window.consentFieldReady = false;
+    window.consentFieldErrors = [];
+    window.addEventListener("error", (event) => {
+      window.consentFieldErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#consent-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      boundary: document.querySelector("#boundary"),
+      invitation: document.querySelector("#invitation"),
+      reach: document.querySelector("#reach"),
+      return: document.querySelector("#return")
+    };
+    const reset = document.querySelector("#reset-consent");
+    let seed = 9.41;
+    let tick = 0;
+    let touches = [];
+    let lanterns = Array.from({ length: 42 }, (_, index) => makeLantern(index));
+
+    function makeLantern(index) {
+      const angle = seed + index * 2.399;
+      return {
+        angle,
+        radius: 88 + (index % 11) * 13,
+        size: 2.4 + (index % 5) * 0.72,
+        speed: 0.002 + (index % 7) * 0.00045,
+        hue: index % 4 === 0 ? 42 : index % 4 === 1 ? 151 : index % 4 === 2 ? 206 : 8
+      };
+    }
+
+    function hsla(hue, saturation, lightness, alpha = 1) {
+      return `hsla(${hue} ${saturation}% ${lightness}% / ${alpha})`;
+    }
+
+    function value(id) {
+      return Number(controls[id].value);
+    }
+
+    function wave(point, amount, offset = 0) {
+      return Math.sin(point * 0.018 + seed + tick * 0.012 + offset) * amount +
+        Math.cos(point * 0.031 + seed * 0.8 + offset) * amount * 0.36;
+    }
+
+    function addTouch(clientX, clientY, force = 1) {
+      const rect = canvas.getBoundingClientRect();
+      touches.push({
+        x: ((clientX - rect.left) / rect.width) * canvas.width,
+        y: ((clientY - rect.top) / rect.height) * canvas.height,
+        life: 1,
+        force
+      });
+      if (touches.length > 90) touches = touches.slice(-90);
+    }
+
+    function drawBackground(width, height, boundary, invitation, reach, returning) {
+      const background = ctx.createLinearGradient(0, 0, width, height);
+      background.addColorStop(0, hsla(48, 70, Math.min(92, 62 + invitation * 0.22), 1));
+      background.addColorStop(0.46, hsla(138, 25, Math.max(48, 74 - boundary * 0.12), 1));
+      background.addColorStop(1, hsla(207, 31, Math.max(34, 59 - reach * 0.18), 1));
+      ctx.fillStyle = background;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.globalAlpha = 0.13 + boundary / 620;
+      for (let band = 0; band < 9; band += 1) {
+        ctx.beginPath();
+        for (let step = 0; step <= 110; step += 1) {
+          const t = step / 110;
+          const x = width * (0.06 + t * 0.88);
+          const y = height * (0.18 + band * 0.085) + wave(step * 21 + band * 44, 10 + returning * 0.12, band);
+          if (step === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = band % 3 === 0 ? "#174f3c" : band % 3 === 1 ? "#466f86" : "#b8645d";
+        ctx.lineWidth = 1.1 + band * 0.22;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawFrame(width, height, boundary, invitation, reach, returning) {
+      const centerX = width * 0.5;
+      const centerY = height * 0.52;
+      const baseRadius = 128 + boundary * 1.36;
+      const openness = invitation / 100;
+      const gap = Math.PI * (0.18 + openness * 0.42);
+      const start = -Math.PI / 2 + gap / 2;
+      const end = Math.PI * 1.5 - gap / 2;
+
+      const fieldGlow = ctx.createRadialGradient(centerX, centerY, 18, centerX, centerY, baseRadius + reach * 2.2);
+      fieldGlow.addColorStop(0, `rgba(255, 248, 214, ${0.38 + invitation / 260})`);
+      fieldGlow.addColorStop(0.46, `rgba(216, 159, 57, ${0.16 + reach / 520})`);
+      fieldGlow.addColorStop(1, "rgba(216, 159, 57, 0)");
+      ctx.fillStyle = fieldGlow;
+      ctx.fillRect(0, 0, width, height);
+
+      for (let ring = 0; ring < 4; ring += 1) {
+        const radius = baseRadius - ring * (24 + returning * 0.04);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, start + ring * 0.045, end - ring * 0.035);
+        ctx.strokeStyle = ring === 0
+          ? `rgba(23, 79, 60, ${0.62 + boundary / 260})`
+          : `rgba(255, 252, 240, ${0.16 + returning / 360})`;
+        ctx.lineWidth = ring === 0 ? 5 : 1.8 + ring * 0.35;
+        ctx.stroke();
+      }
+
+      const gateY = centerY - baseRadius;
+      ctx.fillStyle = `rgba(255, 252, 240, ${0.64 + invitation / 320})`;
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.22)";
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.roundRect(centerX - 68, gateY - 28, 136, 56, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(centerX, gateY + 25);
+      ctx.bezierCurveTo(
+        centerX + wave(20, reach * 0.42, 4),
+        centerY - 80,
+        centerX + wave(70, reach * 0.36, 9),
+        centerY + 40,
+        centerX,
+        centerY + baseRadius * 0.76
+      );
+      ctx.strokeStyle = `rgba(255, 248, 214, ${0.38 + reach / 230})`;
+      ctx.lineWidth = 5 + reach / 34;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 24 + returning * 0.22, 0, Math.PI * 2);
+      ctx.fillStyle = hsla(42, 78, 69, 0.86);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.16)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
+    function drawLanterns(width, height, boundary, invitation, reach, returning) {
+      const centerX = width * 0.5;
+      const centerY = height * 0.52;
+      const maxRadius = 126 + boundary * 1.24 + reach * 0.82;
+      lanterns.forEach((lantern, index) => {
+        lantern.angle += lantern.speed + reach / 42000;
+        const radius = Math.min(maxRadius - 14, lantern.radius + wave(index * 27, reach * 0.16, index));
+        const pull = returning / 100;
+        const x = centerX + Math.cos(lantern.angle) * radius * (0.82 + invitation / 460);
+        const y = centerY + Math.sin(lantern.angle) * radius * (0.72 + pull * 0.22);
+        ctx.beginPath();
+        ctx.arc(x, y, lantern.size + invitation / 82, 0, Math.PI * 2);
+        ctx.fillStyle = hsla(lantern.hue, 70, 70, 0.16 + invitation / 520);
+        ctx.fill();
+      });
+    }
+
+    function drawTouches(width, height, reach, returning) {
+      touches.forEach((touch, index) => {
+        const radius = 18 + touch.force * 30 + (1 - touch.life) * (72 + reach);
+        const glow = ctx.createRadialGradient(touch.x, touch.y, 2, touch.x, touch.y, radius);
+        glow.addColorStop(0, `rgba(255, 248, 214, ${0.42 * touch.life})`);
+        glow.addColorStop(0.52, `rgba(70, 111, 134, ${0.18 * touch.life})`);
+        glow.addColorStop(1, "rgba(70, 111, 134, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+        touch.x += wave(index * 19, reach * 0.024, 5);
+        touch.y += (canvas.height * 0.52 - touch.y) * (0.004 + returning / 22000);
+        touch.life *= 0.969;
+      });
+      touches = touches.filter((touch) => touch.life > 0.035);
+    }
+
+    function draw() {
+      const width = canvas.width;
+      const height = canvas.height;
+      const boundary = value("boundary");
+      const invitation = value("invitation");
+      const reach = value("reach");
+      const returning = value("return");
+
+      ctx.clearRect(0, 0, width, height);
+      drawBackground(width, height, boundary, invitation, reach, returning);
+      drawTouches(width, height, reach, returning);
+      drawLanterns(width, height, boundary, invitation, reach, returning);
+      drawFrame(width, height, boundary, invitation, reach, returning);
+
+      tick += 1;
+      requestAnimationFrame(draw);
+    }
+
+    Object.values(controls).forEach((input) => {
+      input.addEventListener("input", () => {
+        addTouch(canvas.width * 0.5, canvas.height * 0.24, 0.7);
+      });
+    });
+
+    reset.addEventListener("click", () => {
+      seed = Math.random() * 22;
+      tick = 0;
+      touches = [];
+      controls.boundary.value = 72;
+      controls.invitation.value = 70;
+      controls.reach.value = 62;
+      controls.return.value = 76;
+      lanterns = Array.from({ length: 42 }, (_, index) => makeLantern(index));
+      addTouch(canvas.width * 0.5, canvas.height * 0.52, 1.4);
+    });
+
+    canvas.addEventListener("pointerdown", (event) => addTouch(event.clientX, event.clientY, 1.25));
+    canvas.addEventListener("pointermove", (event) => {
+      if (event.buttons) addTouch(event.clientX, event.clientY, 0.56);
+    });
+
+    addTouch(canvas.width * 0.5, canvas.height * 0.52, 1.2);
+    draw();
+    window.consentFieldReady = true;
+  </script>
+</body>
+</html>

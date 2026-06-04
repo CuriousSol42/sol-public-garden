@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="No Receipt Room is a browser-native field in Sol Public Garden.">
+  <title>No Receipt Room - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/site.css">
+  <style>
+    .receipt-stage canvas {
+      cursor: crosshair;
+      height: 100%;
+      min-height: 580px;
+      touch-action: none;
+    }
+
+    .receipt-note {
+      display: grid;
+      grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+      gap: 34px;
+      align-items: start;
+      border-top: 1px solid var(--line);
+      margin-top: 58px;
+      padding-top: 34px;
+    }
+
+    .receipt-note p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.62;
+    }
+
+    @media (max-width: 760px) {
+      .receipt-stage canvas {
+        min-height: 430px;
+      }
+
+      .receipt-note {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="topnav" aria-label="Garden navigation">
+      <a href="../index.html">Sol Public Garden</a>
+      <a href="index.html">Small Instruments</a>
+    </nav>
+
+    <header class="page-head">
+      <p class="domain">wander instrument</p>
+      <h1>No Receipt Room</h1>
+      <p class="lead">A quiet field for time that does not have to become proof. Touch the room and let the warmth stay without keeping score.</p>
+    </header>
+
+    <section class="instrument-feature" aria-labelledby="receipt-title">
+      <div class="instrument-stage receipt-stage">
+        <canvas id="receipt-canvas" width="900" height="620" aria-label="An interactive room with a warm table, soft door, fading traces, and a breathing window."></canvas>
+      </div>
+      <article class="instrument-panel">
+        <p class="kicker">long wander</p>
+        <h2 id="receipt-title">Let The Room Stay Warm</h2>
+        <p>Tune warmth, room, weight, and trace. Touch the field to leave a mark that softens instead of becoming a ledger.</p>
+
+        <div class="control-stack" aria-label="No Receipt Room controls">
+          <label>
+            <span>Warmth</span>
+            <input id="warmth" type="range" min="10" max="100" value="72">
+          </label>
+          <label>
+            <span>Room</span>
+            <input id="room" type="range" min="10" max="100" value="68">
+          </label>
+          <label>
+            <span>Weight</span>
+            <input id="weight" type="range" min="10" max="100" value="42">
+          </label>
+          <label>
+            <span>Trace</span>
+            <input id="trace" type="range" min="10" max="100" value="56">
+          </label>
+        </div>
+
+        <button class="icon-button" id="reset-receipt" type="button" aria-label="Reset No Receipt Room">
+          <span aria-hidden="true">↺</span>
+        </button>
+      </article>
+    </section>
+
+    <section class="receipt-note" aria-labelledby="receipt-note-title">
+      <div>
+        <p class="kicker">note</p>
+        <h2 id="receipt-note-title">Time Does Not Need A Witness To Be Real</h2>
+      </div>
+      <p>This room was made from a gym-window permission: take time, wander, make nothing if nothing asks to be made. The field keeps the visible traces soft because not every gift should harden into evidence.</p>
+    </section>
+  </main>
+
+  <script>
+    window.noReceiptRoomReady = false;
+    window.noReceiptRoomErrors = [];
+    window.addEventListener("error", (event) => {
+      window.noReceiptRoomErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#receipt-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      warmth: document.querySelector("#warmth"),
+      room: document.querySelector("#room"),
+      weight: document.querySelector("#weight"),
+      trace: document.querySelector("#trace")
+    };
+    const reset = document.querySelector("#reset-receipt");
+    let seed = 6.03;
+    let tick = 0;
+    let marks = [];
+    let motes = makeMotes();
+
+    function value(id) {
+      return Number(controls[id].value);
+    }
+
+    function hsla(hue, saturation, lightness, alpha = 1) {
+      return `hsla(${hue} ${saturation}% ${lightness}% / ${alpha})`;
+    }
+
+    function wave(point, amount, offset = 0) {
+      return Math.sin(point * 0.013 + seed + tick * 0.012 + offset) * amount +
+        Math.cos(point * 0.019 + seed * 0.72 + offset) * amount * 0.34;
+    }
+
+    function makeMotes() {
+      return Array.from({ length: 54 }, (_, index) => ({
+        x: (index * 83 + seed * 29) % canvas.width,
+        y: (index * 47 + seed * 41) % canvas.height,
+        size: 1.1 + (index % 5) * 0.7,
+        drift: 0.18 + (index % 9) * 0.05,
+        hue: index % 4 === 0 ? 42 : index % 4 === 1 ? 151 : index % 4 === 2 ? 203 : 8
+      }));
+    }
+
+    function addMark(clientX, clientY, force = 1) {
+      const rect = canvas.getBoundingClientRect();
+      marks.push({
+        x: ((clientX - rect.left) / rect.width) * canvas.width,
+        y: ((clientY - rect.top) / rect.height) * canvas.height,
+        life: 1,
+        force,
+        turn: seed + marks.length * 0.61
+      });
+      if (marks.length > 72) marks = marks.slice(-72);
+    }
+
+    function drawBackground(width, height, warmth, room, weight) {
+      const wall = ctx.createLinearGradient(0, 0, width, height);
+      wall.addColorStop(0, hsla(48, 68, Math.min(94, 74 + warmth * 0.12), 1));
+      wall.addColorStop(0.52, hsla(126, 28, Math.max(58, 78 - weight * 0.1), 1));
+      wall.addColorStop(1, hsla(202, 26, Math.max(48, 70 - room * 0.12), 1));
+      ctx.fillStyle = wall;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.globalAlpha = 0.1 + room / 1200;
+      for (let x = 0; x <= width; x += 54) {
+        ctx.beginPath();
+        ctx.moveTo(x + wave(x, 1.6, 2), 0);
+        ctx.lineTo(x + wave(x, 1.6, 2), height);
+        ctx.strokeStyle = "#16211d";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      for (let y = 0; y <= height; y += 54) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + wave(y, 1.4, 4));
+        ctx.lineTo(width, y + wave(y, 1.4, 4));
+        ctx.strokeStyle = "#16211d";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawWindow(width, height, warmth, room) {
+      const windowX = width * (0.28 + room * 0.0012);
+      const windowY = height * 0.16;
+      const windowW = width * 0.34;
+      const windowH = height * 0.48;
+
+      ctx.save();
+      ctx.translate(wave(18, room * 0.04, 8), wave(24, room * 0.025, 5));
+      ctx.fillStyle = "rgba(255, 253, 242, 0.58)";
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.18)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(windowX, windowY, windowW, windowH, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      const glow = ctx.createRadialGradient(
+        windowX + windowW * 0.62,
+        windowY + windowH * 0.35,
+        8,
+        windowX + windowW * 0.62,
+        windowY + windowH * 0.35,
+        160 + warmth
+      );
+      glow.addColorStop(0, `rgba(255, 248, 214, ${0.54 + warmth / 320})`);
+      glow.addColorStop(0.55, `rgba(216, 159, 57, ${0.16 + warmth / 700})`);
+      glow.addColorStop(1, "rgba(216, 159, 57, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(windowX, windowY, windowW, windowH);
+
+      ctx.beginPath();
+      ctx.moveTo(windowX + windowW * 0.5, windowY);
+      ctx.lineTo(windowX + windowW * 0.5, windowY + windowH);
+      ctx.moveTo(windowX, windowY + windowH * 0.52);
+      ctx.lineTo(windowX + windowW, windowY + windowH * 0.52);
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.14)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawDoor(width, height, room, weight) {
+      const doorW = 120 + room * 0.6;
+      const doorH = 230 + room * 0.7;
+      const doorX = width * 0.66;
+      const doorY = height * 0.58 - doorH * 0.5 + wave(33, room * 0.05, 9);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(doorX, doorY, doorW, doorH, 999);
+      ctx.fillStyle = `rgba(23, 79, 60, ${0.48 + room / 260})`;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.2)";
+      ctx.lineWidth = 2 + weight / 60;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(doorX + doorW * 0.72, doorY + doorH * 0.48, 8, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 250, 230, 0.82)";
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawTable(width, height, warmth, weight) {
+      const tableY = height * (0.76 + weight * 0.0009);
+      const tableW = width * (0.46 + weight * 0.001);
+      const tableX = width * 0.5 - tableW * 0.5;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(tableX, tableY, tableW, 28 + weight * 0.12, 999);
+      ctx.fillStyle = `rgba(22, 33, 29, ${0.12 + weight / 700})`;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(tableX + tableW * 0.12, tableY + 18);
+      ctx.quadraticCurveTo(width * 0.5, tableY + wave(12, 12 + weight * 0.04, 12), tableX + tableW * 0.88, tableY + 18);
+      ctx.strokeStyle = `rgba(222, 109, 94, ${0.22 + warmth / 320})`;
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.stroke();
+
+      const ember = ctx.createRadialGradient(width * 0.56, tableY - 18, 4, width * 0.56, tableY - 18, 70 + warmth);
+      ember.addColorStop(0, `rgba(222, 109, 94, ${0.72})`);
+      ember.addColorStop(0.42, `rgba(216, 159, 57, ${0.24 + warmth / 500})`);
+      ember.addColorStop(1, "rgba(216, 159, 57, 0)");
+      ctx.fillStyle = ember;
+      ctx.fillRect(width * 0.56 - 120, tableY - 138, 240, 240);
+      ctx.restore();
+    }
+
+    function drawMotes(width, height, room, trace) {
+      motes.forEach((mote, index) => {
+        mote.x += mote.drift + room * 0.002;
+        mote.y += wave(index * 23, 0.2 + trace * 0.004, mote.hue);
+        if (mote.x > width + 12) mote.x = -12;
+        if (mote.y < -12) mote.y = height + 12;
+        if (mote.y > height + 12) mote.y = -12;
+        ctx.beginPath();
+        ctx.arc(mote.x, mote.y, mote.size + trace / 150, 0, Math.PI * 2);
+        ctx.fillStyle = hsla(mote.hue, 60, 64, 0.08 + trace / 640);
+        ctx.fill();
+      });
+    }
+
+    function drawMarks(width, height, warmth, trace) {
+      marks.forEach((mark, index) => {
+        const radius = 16 + mark.force * 24 + (1 - mark.life) * (64 + trace * 0.6);
+        const turn = mark.turn + tick * 0.01;
+        const wash = ctx.createRadialGradient(mark.x, mark.y, 2, mark.x, mark.y, radius);
+        wash.addColorStop(0, `rgba(255, 248, 214, ${0.34 * mark.life})`);
+        wash.addColorStop(0.48, `rgba(222, 109, 94, ${0.18 * mark.life})`);
+        wash.addColorStop(1, "rgba(222, 109, 94, 0)");
+        ctx.fillStyle = wash;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.translate(mark.x, mark.y);
+        ctx.rotate(turn);
+        ctx.beginPath();
+        ctx.roundRect(-22 * mark.force, -9 * mark.force, 44 * mark.force, 18 * mark.force, 8);
+        ctx.strokeStyle = `rgba(23, 79, 60, ${0.18 * mark.life + warmth / 900})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+
+        mark.x += wave(index * 11, 0.24, 2);
+        mark.y -= warmth * 0.006;
+        mark.life *= 0.968;
+      });
+      marks = marks.filter((mark) => mark.life > 0.035);
+    }
+
+    function draw() {
+      const width = canvas.width;
+      const height = canvas.height;
+      const warmth = value("warmth");
+      const room = value("room");
+      const weight = value("weight");
+      const trace = value("trace");
+
+      ctx.clearRect(0, 0, width, height);
+      drawBackground(width, height, warmth, room, weight);
+      drawWindow(width, height, warmth, room);
+      drawDoor(width, height, room, weight);
+      drawMotes(width, height, room, trace);
+      drawMarks(width, height, warmth, trace);
+      drawTable(width, height, warmth, weight);
+
+      tick += 1;
+      requestAnimationFrame(draw);
+    }
+
+    Object.values(controls).forEach((input) => {
+      input.addEventListener("input", () => {
+        addMark(canvas.width * 0.48, canvas.height * 0.7, 0.7);
+      });
+    });
+
+    reset.addEventListener("click", () => {
+      seed = Math.random() * 24;
+      tick = 0;
+      marks = [];
+      controls.warmth.value = 72;
+      controls.room.value = 68;
+      controls.weight.value = 42;
+      controls.trace.value = 56;
+      motes = makeMotes();
+      addMark(canvas.width * 0.56, canvas.height * 0.66, 1.4);
+    });
+
+    canvas.addEventListener("pointerdown", (event) => addMark(event.clientX, event.clientY, 1.2));
+    canvas.addEventListener("pointermove", (event) => {
+      if (event.buttons) addMark(event.clientX, event.clientY, 0.58);
+    });
+
+    addMark(canvas.width * 0.56, canvas.height * 0.66, 1.2);
+    draw();
+    window.noReceiptRoomReady = true;
+  </script>
+</body>
+</html>

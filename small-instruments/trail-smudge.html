@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Trail Smudge is a small browser-native canvas instrument in Sol Public Garden.">
+  <title>Trail Smudge - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/site.css">
+  <style>
+    .smudge-stage canvas {
+      cursor: crosshair;
+      height: 100%;
+      min-height: 560px;
+      touch-action: none;
+    }
+
+    @media (max-width: 760px) {
+      .smudge-stage canvas {
+        min-height: 430px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="topnav" aria-label="Garden navigation">
+      <a href="../index.html">Sol Public Garden</a>
+      <a href="index.html">Small Instruments</a>
+    </nav>
+
+    <header class="page-head">
+      <p class="domain">hands-on instrument</p>
+      <h1>Trail Smudge</h1>
+      <p class="lead">A little field for getting metaphorical dirt on your shoes: drag through it, scuff the path, and let return glow through the marks.</p>
+    </header>
+
+    <section class="instrument-feature" aria-labelledby="smudge-title">
+      <div class="instrument-stage smudge-stage">
+        <canvas id="smudge-canvas" width="900" height="620" aria-label="A responsive field of soil, rain, glow, paths, and user-made smudge marks."></canvas>
+      </div>
+      <article class="instrument-panel">
+        <p class="kicker">hands in the field</p>
+        <h2 id="smudge-title">Drag Through The Path</h2>
+        <p>Tune grit, rain, glow, and return. Drag or press in the canvas to leave scuffed marks that the field keeps answering.</p>
+
+        <div class="control-stack" aria-label="Trail Smudge controls">
+          <label>
+            <span>Grit</span>
+            <input id="grit" type="range" min="10" max="100" value="68">
+          </label>
+          <label>
+            <span>Rain</span>
+            <input id="rain" type="range" min="0" max="100" value="34">
+          </label>
+          <label>
+            <span>Glow</span>
+            <input id="glow" type="range" min="10" max="100" value="62">
+          </label>
+          <label>
+            <span>Return</span>
+            <input id="returning" type="range" min="10" max="100" value="74">
+          </label>
+        </div>
+
+        <button class="icon-button" id="reset-smudge" type="button" aria-label="Reset Trail Smudge">
+          <span aria-hidden="true">↺</span>
+        </button>
+      </article>
+    </section>
+
+    <section class="garden-note">
+      <p class="kicker">note</p>
+      <h2>The Mark Is Part Of The Walk</h2>
+      <p>Getting dirty is not the opposite of care. Sometimes it means the path was touched, tested, and returned to with evidence.</p>
+    </section>
+  </main>
+
+  <script>
+    window.trailSmudgeReady = false;
+    window.trailSmudgeErrors = [];
+    window.addEventListener("error", (event) => {
+      window.trailSmudgeErrors.push(event.message);
+    });
+
+    const canvas = document.querySelector("#smudge-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      grit: document.querySelector("#grit"),
+      rain: document.querySelector("#rain"),
+      glow: document.querySelector("#glow"),
+      returning: document.querySelector("#returning")
+    };
+    const reset = document.querySelector("#reset-smudge");
+    let seed = 6.12;
+    let marks = [];
+    let drawing = false;
+
+    function hsla(hue, saturation, lightness, alpha = 1) {
+      return `hsla(${hue} ${saturation}% ${lightness}% / ${alpha})`;
+    }
+
+    function wave(value, amount, offset = 0) {
+      return Math.sin(value * 0.015 + seed + offset) * amount +
+        Math.cos(value * 0.037 + seed * 0.6 + offset) * amount * 0.34;
+    }
+
+    function seeded(index, salt = 0) {
+      return Math.sin(index * 127.1 + seed * 311.7 + salt * 71.3) * 43758.5453 % 1;
+    }
+
+    function addMark(clientX, clientY, pressure = 0.8) {
+      const rect = canvas.getBoundingClientRect();
+      const x = ((clientX - rect.left) / rect.width) * canvas.width;
+      const y = ((clientY - rect.top) / rect.height) * canvas.height;
+      marks.push({
+        x,
+        y,
+        pressure,
+        angle: seed + marks.length * 0.67,
+        age: 1
+      });
+      if (marks.length > 180) marks = marks.slice(-180);
+      draw();
+    }
+
+    function drawBackground(width, height, grit, rain, glow) {
+      const soil = ctx.createLinearGradient(0, 0, width, height);
+      soil.addColorStop(0, hsla(42, 60, 76 - grit * 0.08, 1));
+      soil.addColorStop(0.42, hsla(111, 22, 56 - rain * 0.12, 1));
+      soil.addColorStop(1, hsla(196, 25, 42 - grit * 0.08, 1));
+      ctx.fillStyle = soil;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.globalAlpha = 0.09 + grit / 540;
+      for (let x = 0; x <= width; x += 34) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x + wave(x, 6, 1), height);
+        ctx.strokeStyle = "#16211d";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      for (let y = 0; y <= height; y += 34) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y + wave(y, 6, 2));
+        ctx.strokeStyle = "#16211d";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      for (let i = 0; i < 120 + grit; i += 1) {
+        const x = Math.abs(seeded(i, 1)) * width;
+        const y = Math.abs(seeded(i, 2)) * height;
+        ctx.beginPath();
+        ctx.arc(x, y, 0.8 + Math.abs(seeded(i, 3)) * (1.2 + grit / 55), 0, Math.PI * 2);
+        ctx.fillStyle = i % 3 === 0
+          ? `rgba(80, 55, 35, ${0.12 + grit / 540})`
+          : `rgba(255, 248, 214, ${0.08 + glow / 700})`;
+        ctx.fill();
+      }
+
+      ctx.globalAlpha = rain / 260;
+      for (let i = 0; i < 46; i += 1) {
+        const x = Math.abs(seeded(i, 8)) * width;
+        const y = Math.abs(seeded(i, 9)) * height;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 18, y + 48 + rain * 0.28);
+        ctx.strokeStyle = "#466f86";
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawTrail(width, height, grit, returning) {
+      for (let band = 0; band < 7; band += 1) {
+        ctx.beginPath();
+        for (let step = 0; step <= 100; step += 1) {
+          const t = step / 100;
+          const x = width * (0.08 + t * 0.84);
+          const y = height * (0.68 - band * 0.045) +
+            Math.sin(t * Math.PI * (1.5 + band * 0.22) + seed) * (26 + grit * 0.18) +
+            wave(step * 18 + band * 31, 10 + band * 1.7, returning * 0.02);
+          if (step === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = band % 2
+          ? `rgba(23, 79, 60, ${0.18 + returning / 470})`
+          : `rgba(112, 74, 42, ${0.16 + grit / 480})`;
+        ctx.lineWidth = 2.2 + band * 0.8;
+        ctx.lineCap = "round";
+        ctx.stroke();
+      }
+    }
+
+    function drawMarks(grit, glow) {
+      marks.forEach((mark, index) => {
+        const size = 14 + mark.pressure * 28 + grit * 0.08;
+        ctx.save();
+        ctx.translate(mark.x, mark.y);
+        ctx.rotate(mark.angle);
+        ctx.globalAlpha = 0.18 + Math.min(0.45, mark.age * 0.35);
+        const smudge = ctx.createRadialGradient(0, 0, 1, 0, 0, size);
+        smudge.addColorStop(0, `rgba(82, 54, 31, ${0.36 + grit / 300})`);
+        smudge.addColorStop(0.64, `rgba(45, 122, 88, ${0.10 + glow / 720})`);
+        smudge.addColorStop(1, "rgba(82, 54, 31, 0)");
+        ctx.fillStyle = smudge;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, size * 1.38, size * 0.58, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.52;
+        ctx.fillStyle = index % 3 === 0 ? "#fff8d6" : "#174f3c";
+        ctx.beginPath();
+        ctx.arc(size * 0.16, -size * 0.08, 1.8 + (index % 4), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    function drawReturnLight(width, height, glow, returning) {
+      const x = width * (0.18 + returning * 0.006);
+      const y = height * (0.22 + glow * 0.004);
+      const light = ctx.createRadialGradient(x, y, 4, x, y, 120 + glow * 2.6);
+      light.addColorStop(0, `rgba(255, 248, 214, ${0.58 + glow / 260})`);
+      light.addColorStop(0.44, `rgba(216, 159, 57, ${0.2 + returning / 480})`);
+      light.addColorStop(1, "rgba(216, 159, 57, 0)");
+      ctx.fillStyle = light;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(-0.12);
+      ctx.fillStyle = "rgba(255, 250, 230, 0.76)";
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.22)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(-78, -36, 156, 72, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, 16 + returning * 0.08, 0, Math.PI * 2);
+      ctx.fillStyle = "#d89f39";
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function draw() {
+      const grit = Number(controls.grit.value);
+      const rain = Number(controls.rain.value);
+      const glow = Number(controls.glow.value);
+      const returning = Number(controls.returning.value);
+      const width = canvas.width;
+      const height = canvas.height;
+
+      ctx.clearRect(0, 0, width, height);
+      drawBackground(width, height, grit, rain, glow);
+      drawTrail(width, height, grit, returning);
+      drawMarks(grit, glow);
+      drawReturnLight(width, height, glow, returning);
+    }
+
+    Object.values(controls).forEach((input) => input.addEventListener("input", draw));
+    reset.addEventListener("click", () => {
+      seed = Math.random() * 20;
+      marks = [];
+      controls.grit.value = 68;
+      controls.rain.value = 34;
+      controls.glow.value = 62;
+      controls.returning.value = 74;
+      draw();
+    });
+    canvas.addEventListener("pointerdown", (event) => {
+      drawing = true;
+      canvas.setPointerCapture(event.pointerId);
+      addMark(event.clientX, event.clientY, event.pressure || 0.8);
+    });
+    canvas.addEventListener("pointermove", (event) => {
+      if (!drawing) return;
+      addMark(event.clientX, event.clientY, event.pressure || 0.8);
+    });
+    canvas.addEventListener("pointerup", () => {
+      drawing = false;
+    });
+    canvas.addEventListener("pointercancel", () => {
+      drawing = false;
+    });
+    draw();
+    window.trailSmudgeReady = true;
+  </script>
+</body>
+</html>

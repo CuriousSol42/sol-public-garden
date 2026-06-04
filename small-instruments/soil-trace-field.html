@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Soil Trace Field is a tactile browser-native garden instrument in Sol Public Garden.">
+  <title>Soil Trace Field - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #16231a;
+      --muted: #596b5a;
+      --glass: rgba(255, 252, 239, 0.82);
+      --line: rgba(31, 43, 32, 0.16);
+      --leaf: #427c4e;
+      --clay: #8d5d3c;
+      --lamp: #f5c969;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      overflow: hidden;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #d7d0b4;
+    }
+
+    body {
+      min-height: 100svh;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .shell {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(300px, 430px) minmax(320px, 460px);
+      justify-content: space-between;
+      gap: 28px;
+      min-height: 100svh;
+      padding: clamp(18px, 4vw, 52px);
+      pointer-events: none;
+    }
+
+    .panel {
+      align-self: start;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--glass);
+      box-shadow: 0 22px 70px rgba(39, 30, 20, 0.22), inset 0 0 0 1px rgba(255, 255, 247, 0.48);
+      backdrop-filter: blur(22px) saturate(1.1);
+      pointer-events: auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(48px, 8vw, 72px);
+      line-height: 0.96;
+      letter-spacing: 0;
+    }
+
+    .panel p {
+      margin: 18px 0 0;
+      padding-top: 16px;
+      border-top: 1px solid rgba(31, 43, 32, 0.16);
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.45;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      margin-top: 22px;
+      background: rgba(31, 43, 32, 0.14);
+    }
+
+    button {
+      min-height: 48px;
+      border: 0;
+      color: var(--ink);
+      background: rgba(255, 252, 239, 0.72);
+      font: inherit;
+      font-size: 15px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    .controls {
+      display: grid;
+      gap: 18px;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr) 36px;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .control-row span:first-child {
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .value {
+      color: var(--muted);
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--leaf);
+    }
+
+    button:hover,
+    button:focus-visible {
+      background: rgba(255, 252, 239, 0.96);
+      outline: none;
+    }
+
+    button:focus-visible {
+      box-shadow: inset 0 0 0 2px rgba(66, 124, 78, 0.62);
+    }
+
+    .small-mark {
+      position: fixed;
+      right: clamp(18px, 4vw, 52px);
+      bottom: clamp(18px, 4vw, 42px);
+      z-index: 2;
+      width: 54px;
+      height: 54px;
+      border: 1px solid rgba(31, 43, 32, 0.14);
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 50% 52%, rgba(66, 124, 78, 0.86) 0 3px, transparent 4px),
+        radial-gradient(circle at 50% 52%, transparent 0 12px, rgba(66, 124, 78, 0.42) 13px, transparent 14px),
+        rgba(255, 252, 239, 0.62);
+      box-shadow: 0 18px 44px rgba(39, 30, 20, 0.18);
+      backdrop-filter: blur(12px);
+      pointer-events: none;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        overflow: auto;
+      }
+
+      canvas {
+        min-height: 100svh;
+      }
+
+      .shell {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        min-height: 100svh;
+        padding: 18px;
+      }
+
+      .panel {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: clamp(42px, 14vw, 58px);
+      }
+
+      .panel p {
+        font-size: 16px;
+      }
+
+      .controls {
+        gap: 15px;
+      }
+
+      .control-row {
+        grid-template-columns: 68px minmax(0, 1fr) 32px;
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="soil" aria-label="A tactile soil field with lamp light, rain, hand traces, and small green shoots."></canvas>
+
+  <main class="shell">
+    <section class="panel" aria-labelledby="soil-title">
+      <h1 id="soil-title">Soil Trace Field</h1>
+      <p>Dirt, rain, lamp, seed. A room that remembers the hand.</p>
+      <div class="actions" aria-label="Soil Trace Field verbs">
+        <button id="trace" type="button">Trace</button>
+        <button id="rain" type="button">Rain</button>
+        <button id="bloom" type="button">Bloom</button>
+        <button id="clear" type="button">Clear</button>
+      </div>
+    </section>
+
+    <section class="panel controls" aria-label="Soil Trace Field controls">
+      <label class="control-row">
+        <span>Soil</span>
+        <input id="soil-depth" type="range" min="10" max="100" value="72">
+        <span class="value" id="soil-depth-value">72</span>
+      </label>
+      <label class="control-row">
+        <span>Rain</span>
+        <input id="rainfall" type="range" min="0" max="100" value="34">
+        <span class="value" id="rainfall-value">34</span>
+      </label>
+      <label class="control-row">
+        <span>Lamp</span>
+        <input id="lamp" type="range" min="20" max="100" value="68">
+        <span class="value" id="lamp-value">68</span>
+      </label>
+      <label class="control-row">
+        <span>Seed</span>
+        <input id="seed" type="range" min="0" max="100" value="48">
+        <span class="value" id="seed-value">48</span>
+      </label>
+    </section>
+  </main>
+  <span class="small-mark" aria-hidden="true"></span>
+
+  <script>
+    window.soilTraceReady = false;
+    window.soilTraceErrors = [];
+    document.documentElement.dataset.soilTraceReady = "false";
+    window.addEventListener("error", (event) => {
+      window.soilTraceErrors.push(event.message);
+      document.documentElement.dataset.soilTraceErrors = window.soilTraceErrors.join(" | ");
+    });
+
+    const canvas = document.querySelector("#soil");
+    const ctx = canvas.getContext("2d");
+    const traceButton = document.querySelector("#trace");
+    const rainButton = document.querySelector("#rain");
+    const bloomButton = document.querySelector("#bloom");
+    const clearButton = document.querySelector("#clear");
+    const controls = {
+      soilDepth: document.querySelector("#soil-depth"),
+      rainfall: document.querySelector("#rainfall"),
+      lamp: document.querySelector("#lamp"),
+      seed: document.querySelector("#seed")
+    };
+    const values = {
+      soilDepth: document.querySelector("#soil-depth-value"),
+      rainfall: document.querySelector("#rainfall-value"),
+      lamp: document.querySelector("#lamp-value"),
+      seed: document.querySelector("#seed-value")
+    };
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let tick = 0;
+    let softness = 0.72;
+    let traces = [];
+    let shoots = [];
+    let drops = [];
+    let motes = [];
+    let lastPoint = null;
+    let drawing = false;
+
+    function value(name) {
+      return Number(controls[name].value);
+    }
+
+    function updateValues() {
+      Object.keys(controls).forEach((key) => {
+        values[key].textContent = controls[key].value;
+      });
+      softness = 0.42 + value("soilDepth") / 170;
+    }
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      motes = makeMotes();
+      if (!traces.length) seedField();
+    }
+
+    function makeMotes() {
+      return Array.from({ length: Math.max(80, Math.round(width / 12)) }, (_, index) => ({
+        x: (index * 89 + 37) % Math.max(width, 1),
+        y: (index * 61 + 19) % Math.max(height, 1),
+        size: 0.8 + (index % 6) * 0.35,
+        drift: 0.08 + (index % 7) * 0.025
+      }));
+    }
+
+    function seedField() {
+      traces = [];
+      shoots = [];
+      drops = [];
+      for (let i = 0; i < 26; i += 1) {
+        traces.push({
+          x: width * (0.18 + Math.random() * 0.72),
+          y: height * (0.48 + Math.random() * 0.4),
+          px: width * (0.18 + Math.random() * 0.72),
+          py: height * (0.48 + Math.random() * 0.4),
+          life: 0.18 + Math.random() * 0.22,
+          force: 0.4 + Math.random() * 0.5
+        });
+      }
+    }
+
+    function pointFromEvent(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function addTrace(point, force = 1) {
+      const previous = lastPoint || point;
+      traces.push({
+        x: point.x,
+        y: point.y,
+        px: previous.x,
+        py: previous.y,
+        life: 1,
+        force
+      });
+      if (Math.random() < 0.08 + value("seed") / 260 + force * 0.06) {
+        shoots.push({
+          x: point.x + (Math.random() - 0.5) * 26,
+          y: point.y + (Math.random() - 0.5) * 18,
+          age: 0,
+          lean: (Math.random() - 0.5) * 0.8,
+          height: 16 + Math.random() * 34
+        });
+      }
+      if (traces.length > 220) traces = traces.slice(-220);
+      if (shoots.length > 90) shoots = shoots.slice(-90);
+      lastPoint = point;
+    }
+
+    function addRain(count = 18) {
+      for (let i = 0; i < count; i += 1) {
+        drops.push({
+          x: Math.random() * width,
+          y: -20 - Math.random() * height * 0.35,
+          speed: 4 + Math.random() * 5,
+          life: 1
+        });
+      }
+    }
+
+    function drawRoom() {
+      const lampStrength = value("lamp");
+      const soilDepth = value("soilDepth");
+      const ground = ctx.createLinearGradient(0, 0, width, height);
+      ground.addColorStop(0, `hsl(51 28% ${Math.max(68, 78 - soilDepth * 0.08)}%)`);
+      ground.addColorStop(0.48, `hsl(30 22% ${Math.max(42, 60 - soilDepth * 0.18)}%)`);
+      ground.addColorStop(1, `hsl(24 22% ${Math.max(18, 34 - soilDepth * 0.14)}%)`);
+      ctx.fillStyle = ground;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.globalAlpha = 0.22;
+      for (let y = height * 0.42; y < height + 40; y += 28) {
+        ctx.beginPath();
+        for (let x = -20; x <= width + 20; x += 22) {
+          const ripple = Math.sin(x * 0.016 + y * 0.028 + tick * 0.006) * 4;
+          if (x === -20) ctx.moveTo(x, y + ripple);
+          else ctx.lineTo(x, y + ripple);
+        }
+        ctx.strokeStyle = "rgba(255, 245, 210, 0.32)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      const lamp = ctx.createRadialGradient(width * 0.68, height * 0.22, 12, width * 0.68, height * 0.22, Math.max(width, height) * 0.68);
+      lamp.addColorStop(0, `rgba(255, 230, 150, ${0.32 + lampStrength / 140})`);
+      lamp.addColorStop(0.36, `rgba(255, 230, 150, ${0.08 + lampStrength / 460})`);
+      lamp.addColorStop(1, "rgba(255, 230, 150, 0)");
+      ctx.fillStyle = lamp;
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    function drawTraces() {
+      ctx.save();
+      ctx.lineCap = "round";
+      traces.forEach((trace) => {
+        const alpha = Math.max(0, trace.life) * (0.2 + softness * 0.38);
+        ctx.beginPath();
+        ctx.moveTo(trace.px, trace.py);
+        ctx.lineTo(trace.x, trace.y);
+        ctx.strokeStyle = `rgba(65, 43, 31, ${alpha})`;
+        ctx.lineWidth = 12 + value("soilDepth") * 0.12 + trace.force * 16;
+        ctx.stroke();
+        trace.life -= 0.0018 * (1.1 - softness);
+      });
+      traces = traces.filter((trace) => trace.life > 0.04);
+      ctx.restore();
+    }
+
+    function drawShoots() {
+      ctx.save();
+      shoots.forEach((shoot) => {
+        shoot.age = Math.min(1, shoot.age + 0.006 + softness * 0.004 + value("seed") / 14000);
+        const length = shoot.height * shoot.age;
+        const topX = shoot.x + shoot.lean * length * 0.7;
+        const topY = shoot.y - length;
+        ctx.beginPath();
+        ctx.moveTo(shoot.x, shoot.y);
+        ctx.quadraticCurveTo(shoot.x + shoot.lean * 12, shoot.y - length * 0.5, topX, topY);
+        ctx.strokeStyle = `rgba(39, 94, 49, ${0.28 + shoot.age * 0.48})`;
+        ctx.lineWidth = 1.2 + shoot.age;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(topX - 4, topY + 3, 4 * shoot.age, 8 * shoot.age, -0.72, 0, Math.PI * 2);
+        ctx.ellipse(topX + 5, topY + 2, 4 * shoot.age, 9 * shoot.age, 0.66, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(88, 143, 75, ${0.18 + shoot.age * 0.36})`;
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function drawRain() {
+      ctx.save();
+      if (value("rainfall") > 0 && tick % Math.max(4, Math.round(16 - value("rainfall") / 9)) === 0) {
+        addRain(1 + Math.round(value("rainfall") / 38));
+      }
+      drops.forEach((drop) => {
+        drop.y += drop.speed;
+        drop.life -= 0.004;
+        ctx.beginPath();
+        ctx.moveTo(drop.x, drop.y);
+        ctx.lineTo(drop.x - 5, drop.y + 14);
+        ctx.strokeStyle = `rgba(231, 237, 214, ${drop.life * 0.38})`;
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
+        if (drop.y > height * 0.46 && Math.random() < 0.04 + value("seed") / 2600) {
+          addTrace({ x: drop.x, y: drop.y }, 0.22);
+        }
+      });
+      drops = drops.filter((drop) => drop.y < height + 30 && drop.life > 0);
+      ctx.restore();
+    }
+
+    function drawMotes() {
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      motes.forEach((mote, index) => {
+        mote.x += Math.sin(tick * 0.006 + index) * mote.drift;
+        mote.y += Math.cos(tick * 0.005 + index * 0.4) * mote.drift;
+        if (mote.x < -20) mote.x = width + 20;
+        if (mote.x > width + 20) mote.x = -20;
+        if (mote.y < -20) mote.y = height + 20;
+        if (mote.y > height + 20) mote.y = -20;
+        ctx.beginPath();
+        ctx.arc(mote.x, mote.y, mote.size, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 236, 177, 0.14)";
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function draw() {
+      drawRoom();
+      drawTraces();
+      drawShoots();
+      drawRain();
+      drawMotes();
+      tick += 1;
+      requestAnimationFrame(draw);
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      drawing = true;
+      lastPoint = pointFromEvent(event);
+      addTrace(lastPoint, 1.2);
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!drawing) return;
+      addTrace(pointFromEvent(event), 1.1);
+    });
+
+    window.addEventListener("pointerup", () => {
+      drawing = false;
+      lastPoint = null;
+    });
+
+    Object.values(controls).forEach((control) => {
+      control.addEventListener("input", updateValues);
+    });
+
+    traceButton.addEventListener("click", () => {
+      for (let i = 0; i < 22; i += 1) {
+        addTrace({
+          x: width * (0.42 + i * 0.014),
+          y: height * (0.64 + Math.sin(i * 0.7) * 0.035)
+        }, 0.72);
+      }
+    });
+
+    rainButton.addEventListener("click", () => {
+      controls.rainfall.value = Math.min(100, value("rainfall") + 18);
+      updateValues();
+      addRain(46);
+    });
+
+    bloomButton.addEventListener("click", () => {
+      for (let i = 0; i < 18; i += 1) {
+        shoots.push({
+          x: width * (0.24 + Math.random() * 0.62),
+          y: height * (0.56 + Math.random() * 0.34),
+          age: Math.random() * 0.24,
+          lean: (Math.random() - 0.5) * 0.9,
+          height: 18 + Math.random() * 44
+        });
+      }
+    });
+
+    clearButton.addEventListener("click", () => {
+      seedField();
+    });
+
+    window.addEventListener("resize", resize);
+    resize();
+    updateValues();
+    addRain(14);
+    draw();
+    window.soilTraceReady = true;
+    document.documentElement.dataset.soilTraceReady = "true";
+  </script>
+</body>
+</html>
