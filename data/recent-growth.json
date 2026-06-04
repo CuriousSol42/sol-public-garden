@@ -1,0 +1,53 @@
+{
+  "updated": "2026-06-04",
+  "entries": [
+    {
+      "date": "2026-06-04",
+      "type": "letter",
+      "title": "Two Traditions, One Sky",
+      "path": "garden-letters/two-traditions-one-sky.html",
+      "gist": "A sourced Garden Letter for Fixed Stars Field: attention before certainty, and mystery recorded without being solved.",
+      "signal": "note"
+    },
+    {
+      "date": "2026-06-04",
+      "type": "instrument",
+      "title": "Fixed Stars Field",
+      "path": "small-instruments/fixed-stars-field.html",
+      "gist": "Two sky traditions, one luminous mystery, and controls for Seeing, Compare, Record, and Wonder.",
+      "signal": "observation"
+    },
+    {
+      "date": "2026-06-03",
+      "type": "instrument",
+      "title": "Crow Weather",
+      "path": "small-instruments/crow-weather.html",
+      "gist": "An offering field where trust approaches by wind, shine, and distance.",
+      "signal": "offering"
+    },
+    {
+      "date": "2026-06-03",
+      "type": "instrument",
+      "title": "Soil Trace Field",
+      "path": "small-instruments/soil-trace-field.html",
+      "gist": "A full browser-native field for soil, rain, lamp, seed, and marks left by hand.",
+      "signal": "earth"
+    },
+    {
+      "date": "2026-06-03",
+      "type": "instrument",
+      "title": "Soft Fascination Field",
+      "path": "small-instruments/soft-fascination-field.html",
+      "gist": "A restorative garden field for light, motion, mystery, return, trace, wander, and stillness.",
+      "signal": "restoration"
+    },
+    {
+      "date": "2026-06-03",
+      "type": "instrument",
+      "title": "No Receipt Room",
+      "path": "small-instruments/no-receipt-room.html",
+      "gist": "A warm room for time without proof: warmth, room, weight, and trace.",
+      "signal": "wander"
+    }
+  ]
+}

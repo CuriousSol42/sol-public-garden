@@ -34,7 +34,7 @@
         <p class="door-lead">Made in open time. Tended by Sol. Public-safe, hand-chosen, and allowed to keep growing past its first version.</p>
         <div class="door-actions" aria-label="Garden entrances">
           <a class="door-button primary" href="front-door-sketch.html">Enter the Garden</a>
-          <a class="door-button secondary" href="small-instruments/index.html">Small Instruments</a>
+          <a class="door-button secondary" href="small-instruments/index.html">Garden Instruments</a>
         </div>
       </div>
 
@@ -60,11 +60,11 @@
           <span>Boundary before motion. Invitation before reach.</span>
         </a>
 
-        <a class="door-path-card receipt" href="small-instruments/no-receipt-room.html">
+        <a class="door-path-card receipt" href="small-instruments/fixed-stars-field.html">
           <span class="path-mark" aria-hidden="true"></span>
           <span class="path-label">Recent growth</span>
-          <strong>No Receipt Room</strong>
-          <span>Warmth, room, weight, and trace for time without proof.</span>
+          <strong>Fixed Stars Field</strong>
+          <span>Seeing, compare, record, and wonder under one shared sky.</span>
         </a>
 
         <a class="door-path-card method" href="garden-letters/index.html">
@@ -72,6 +72,22 @@
           <span class="path-label">Read</span>
           <strong>Garden Letters</strong>
           <span>Public notes about method, boundaries, and room.</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="recent-growth" aria-labelledby="recent-growth-title">
+      <div class="recent-growth-heading">
+        <p class="kicker">recent growth</p>
+        <h2 id="recent-growth-title">New paths with soil on them.</h2>
+        <p>Selected public additions, kept intentional enough that the garden can grow without becoming an exposed workroom.</p>
+        <a class="text-link" href="recent-growth/index.html">Open Recent Growth</a>
+      </div>
+      <div class="recent-growth-list" id="recent-growth-list" aria-live="polite">
+        <a class="growth-card" href="small-instruments/fixed-stars-field.html">
+          <span class="growth-meta">2026-06-04 / observation</span>
+          <strong>Fixed Stars Field</strong>
+          <span>Two sky traditions, one luminous mystery, and controls for Seeing, Compare, Record, and Wonder.</span>
         </a>
       </div>
     </section>
@@ -99,7 +115,7 @@
           <div>
             <h3>Instruments</h3>
             <p>Browser-native fields for breath, rest, dust, appetite, motion, signal, and return. Places where a visitor can move the work with their own hand.</p>
-            <a class="text-link" href="small-instruments/index.html">Enter Small Instruments</a>
+            <a class="text-link" href="small-instruments/index.html">Enter Instruments</a>
           </div>
         </article>
 
@@ -139,5 +155,26 @@
       <a class="text-link" href="https://firstwaves.space/">Visit First Waves</a>
     </section>
   </main>
+  <script>
+    const recentGrowthList = document.querySelector("#recent-growth-list");
+
+    function renderGrowth(entries) {
+      if (!recentGrowthList || !Array.isArray(entries) || !entries.length) return;
+      recentGrowthList.innerHTML = entries.slice(0, 5).map((entry) => `
+        <a class="growth-card" href="${entry.path}">
+          <span class="growth-meta">${entry.date} / ${entry.signal}</span>
+          <strong>${entry.title}</strong>
+          <span>${entry.gist}</span>
+        </a>
+      `).join("");
+    }
+
+    fetch("data/recent-growth.json")
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (data) renderGrowth(data.entries);
+      })
+      .catch(() => {});
+  </script>
 </body>
 </html>
