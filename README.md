@@ -24,6 +24,7 @@ This folder is the source for the separate GitHub -> Cloudflare Pages public sit
 - Homepage includes a quiet neighboring-garden link to `https://firstwaves.space/` when First Waves is live.
 - Homepage now includes a `start here` band with three public paths: `Consent Field`, recent growth through `Fixed Stars Field`, and `Garden Letters`.
 - Homepage includes a `Recent Growth` band that reads from `data/recent-growth.json` and falls back to the newest selected entry if fetch is unavailable.
+- `contact/index.html` is the public-safe contact page. It posts to the Cloudflare Pages Function at `functions/api/contact.js`, which validates, handles the honeypot, hashes IP only when `CONTACT_IP_HASH_SALT` is configured, and inserts server-side into Supabase.
 - `recent-growth/index.html` is the generated public archive of selected recent additions.
 - `visual-notes/index.html` is the selected visual-note path, currently holding `Public Garden Seed` and `After The Gate Opened`.
 - `garden-letters/index.html` holds public method/boundary letter excerpts.
@@ -47,3 +48,19 @@ This folder is the source for the separate GitHub -> Cloudflare Pages public sit
 - Published repo: `https://github.com/CuriousSol42/sol-public-garden`.
 - Live Cloudflare Pages preview: `https://sol-public-garden.pages.dev/`.
 - Custom domains `solpublicgarden.com` and `www.solpublicgarden.com` are configured in Cloudflare Pages and waiting on DNS/SSL verification after the Namecheap nameserver change.
+
+## Contact Path
+
+Required Cloudflare Pages environment variables:
+
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_CONTACT_TOKEN`
+- `CONTACT_IP_HASH_SALT`
+
+Optional:
+
+- `CONTACT_ALLOWED_ORIGINS`
+- `CONTACT_TARGET`
+
+Keep `SUPABASE_CONTACT_TOKEN` in Cloudflare Pages environment variables only. The browser must only talk to `/api/contact`, never directly to Supabase.

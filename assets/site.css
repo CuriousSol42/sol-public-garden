@@ -1346,6 +1346,179 @@ blockquote {
   margin-bottom: 74px;
 }
 
+.contact-path-band,
+.contact-hero {
+  width: min(1120px, calc(100% - 40px));
+  margin: 0 auto;
+}
+
+.contact-path-band {
+  padding: 44px 0 88px;
+  border-top: 1px solid var(--door-line);
+}
+
+.contact-path-band h2 {
+  max-width: 680px;
+  color: var(--door-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(34px, 5vw, 66px);
+  line-height: 0.98;
+}
+
+.contact-path-band p:not(.kicker) {
+  max-width: 700px;
+  margin: 18px 0 0;
+  color: var(--door-muted);
+  font-size: 18px;
+  line-height: 1.62;
+}
+
+.contact-path-band .text-link {
+  margin-top: 20px;
+}
+
+.contact-door {
+  min-height: 100vh;
+}
+
+.contact-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.88fr) minmax(340px, 1.12fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: start;
+  padding: 150px 0 92px;
+}
+
+.contact-copy {
+  position: sticky;
+  top: 118px;
+}
+
+.contact-copy h1 {
+  max-width: 620px;
+  color: var(--door-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(58px, 7.8vw, 106px);
+  line-height: 0.9;
+}
+
+.contact-copy p:not(.kicker) {
+  max-width: 620px;
+  margin: 24px 0 0;
+  color: var(--door-muted);
+  font-size: clamp(18px, 1.6vw, 22px);
+  line-height: 1.58;
+}
+
+.contact-form {
+  display: grid;
+  gap: 18px;
+  padding: clamp(22px, 3vw, 36px);
+  border: 1px solid rgba(18, 35, 29, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 252, 0.92), rgba(238, 246, 236, 0.86)),
+    radial-gradient(circle at 92% 8%, rgba(120, 184, 207, 0.2), transparent 34%);
+  box-shadow: 0 30px 80px rgba(24, 55, 42, 0.15);
+}
+
+.contact-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--door-ink);
+  font-size: 14px;
+  font-weight: 840;
+}
+
+.contact-form label span em {
+  color: var(--door-muted);
+  font-style: normal;
+  font-weight: 680;
+}
+
+.contact-form input[type="text"],
+.contact-form textarea {
+  width: 100%;
+  border: 1px solid rgba(18, 35, 29, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 252, 0.9);
+  color: var(--door-ink);
+  font: inherit;
+  font-weight: 520;
+}
+
+.contact-form input[type="text"] {
+  min-height: 48px;
+  padding: 0 14px;
+}
+
+.contact-form textarea {
+  min-height: 210px;
+  resize: vertical;
+  padding: 14px;
+  line-height: 1.5;
+}
+
+.contact-form input[type="text"]:focus,
+.contact-form textarea:focus {
+  border-color: rgba(39, 111, 80, 0.52);
+  outline: 3px solid rgba(168, 201, 91, 0.22);
+}
+
+.contact-honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.contact-check {
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  color: var(--door-muted);
+  font-size: 14px;
+  font-weight: 680;
+  line-height: 1.45;
+}
+
+.contact-check input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--door-leaf);
+}
+
+.contact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.contact-actions button {
+  cursor: pointer;
+}
+
+#contact-status {
+  min-height: 22px;
+  margin: 0;
+  color: var(--door-muted);
+  font-size: 14px;
+  font-weight: 760;
+  line-height: 1.45;
+}
+
+#contact-status[data-kind="success"] {
+  color: var(--door-leaf);
+}
+
+#contact-status[data-kind="error"] {
+  color: #9d342a;
+}
+
 @media (max-width: 920px) {
   .door-nav {
     position: static;
@@ -1396,8 +1569,13 @@ blockquote {
   .recent-growth,
   .growing-edge,
   .alive-band,
-  .garden-statement {
+  .garden-statement,
+  .contact-hero {
     grid-template-columns: 1fr;
+  }
+
+  .contact-copy {
+    position: static;
   }
 
   .door-weather {
@@ -1458,6 +1636,19 @@ blockquote {
   .door-links {
     gap: 10px 14px;
     font-size: 12px;
+  }
+
+  .contact-hero {
+    width: min(100% - 28px, 1120px);
+    padding-top: 142px;
+  }
+
+  .contact-form {
+    padding: 18px;
+  }
+
+  .contact-copy h1 {
+    font-size: clamp(48px, 18vw, 72px);
   }
 
   .door-hero {

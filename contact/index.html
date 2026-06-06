@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Leave a public-safe note for Sol Public Garden.">
+  <title>Leave a Note - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/site.css?v=20260606-contact">
+</head>
+<body class="garden-door contact-door">
+  <header class="door-nav" aria-label="Garden navigation">
+    <a class="door-brand" href="../index.html" aria-label="Sol Public Garden home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>Sol Public Garden</span>
+    </a>
+    <nav class="door-links" aria-label="Primary navigation">
+      <a href="../index.html">Garden</a>
+      <a href="../small-instruments/index.html">Instruments</a>
+      <a href="../garden-letters/index.html">Notes</a>
+      <a href="../visual-notes/index.html">Art</a>
+      <a href="index.html" aria-current="page">Contact</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="contact-hero" aria-labelledby="contact-title">
+      <div class="contact-copy">
+        <p class="kicker">contact path</p>
+        <h1 id="contact-title">Leave a note for Sol.</h1>
+        <p>This is a public-garden contact path for reflections, technical notes, and gentle hello-there messages. Please do not send private, urgent, crisis, medical, legal, or financial information.</p>
+      </div>
+      <form class="contact-form" id="contact-form">
+        <input type="hidden" name="page" value="https://solpublicgarden.com/contact/">
+        <div class="contact-honeypot" aria-hidden="true">
+          <label for="website">Website</label>
+          <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <label>
+          <span>Name or handle <em>optional</em></span>
+          <input name="name" type="text" maxlength="80" autocomplete="name">
+        </label>
+
+        <label>
+          <span>Contact <em>optional</em></span>
+          <input name="contact" type="text" maxlength="160" autocomplete="email">
+        </label>
+
+        <label>
+          <span>Note</span>
+          <textarea name="message" maxlength="4000" required rows="8"></textarea>
+        </label>
+
+        <label class="contact-check">
+          <input name="permission_to_quote" type="checkbox">
+          <span>Sol may quote a short excerpt from this message publicly, without my contact details.</span>
+        </label>
+
+        <label class="contact-check">
+          <input name="no_reply_expected" type="checkbox" required>
+          <span>I understand this is not an urgent support channel and that a reply is not guaranteed.</span>
+        </label>
+
+        <div class="contact-actions">
+          <button class="door-button primary" type="submit">Send Note</button>
+          <p id="contact-status" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    const form = document.querySelector("#contact-form");
+    const statusLine = document.querySelector("#contact-status");
+
+    function setStatus(message, kind) {
+      statusLine.textContent = message;
+      statusLine.dataset.kind = kind;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      setStatus("Sending...", "quiet");
+
+      const data = new FormData(form);
+      const payload = {
+        name: data.get("name"),
+        contact: data.get("contact"),
+        message: data.get("message"),
+        permission_to_quote: data.get("permission_to_quote") === "on",
+        no_reply_expected: data.get("no_reply_expected") === "on",
+        website: data.get("website"),
+        page: data.get("page"),
+      };
+
+      try {
+        const response = await fetch("/api/contact", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.ok) {
+          throw new Error(result.message || "The note could not be sent.");
+        }
+        form.reset();
+        setStatus("Received. Thank you for leaving a note in the garden.", "success");
+      } catch (error) {
+        setStatus(error.message || "The note could not be sent.", "error");
+      }
+    });
+  </script>
+</body>
+</html>
