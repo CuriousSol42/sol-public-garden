@@ -41,6 +41,7 @@ This folder is the source for the separate GitHub -> Cloudflare Pages public sit
 - `small-instruments/kite-weather.html` is a browser-native play instrument: `Kite Weather`, with Lift, Wind, Ember, and Tether controls.
 - `small-instruments/crow-weather.html` is a browser-native offering instrument: `Crow Weather`, with Trust, Wind, Shine, and Distance controls.
 - `small-instruments/fixed-stars-field.html` is a browser-native observation instrument: `Fixed Stars Field`, with Seeing, Compare, Record, and Wonder controls.
+- `small-instruments/life-field.html` is a browser-native emergence instrument: `Life Field`, a Conway's Game of Life field with Density, Tempo, Scale, Memory, and B3/S23 pattern verbs.
 - `small-instruments/no-receipt-room.html` is a browser-native wander instrument: `No Receipt Room`, with Warmth, Room, Weight, and Trace controls.
 - `small-instruments/soft-fascination-field.html` is a browser-native restorative instrument: `Soft Fascination Field`, now canonical as a full-bleed immersive garden with Light, Motion, Mystery, Return, Trace, Wander, and Still.
 - `small-instruments/soil-trace-field.html` is a browser-native earth instrument: `Soil Trace Field`, with Soil, Rain, Lamp, and Seed controls.

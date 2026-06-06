@@ -1,6 +1,14 @@
 {
-  "updated": "2026-06-04",
+  "updated": "2026-06-06",
   "entries": [
+    {
+      "date": "2026-06-06",
+      "type": "instrument",
+      "title": "Life Field",
+      "path": "small-instruments/life-field.html",
+      "gist": "A big Conway's Game of Life field for birth, survival, gliders, oscillators, and glowing emergence.",
+      "signal": "emergence"
+    },
     {
       "date": "2026-06-04",
       "type": "letter",

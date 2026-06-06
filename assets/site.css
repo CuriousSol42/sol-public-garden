@@ -2215,6 +2215,38 @@ blockquote {
   transform: rotate(16deg);
 }
 
+.life-specimen {
+  background:
+    radial-gradient(circle at 25% 27%, rgba(242, 215, 120, 0.96) 0 4%, transparent 5%),
+    radial-gradient(circle at 38% 27%, rgba(114, 196, 164, 0.9) 0 4%, transparent 5%),
+    radial-gradient(circle at 25% 41%, rgba(240, 140, 97, 0.88) 0 4%, transparent 5%),
+    radial-gradient(circle at 38% 41%, rgba(242, 215, 120, 0.9) 0 4%, transparent 5%),
+    linear-gradient(135deg, #071012 0%, #142125 52%, #39545a 100%);
+}
+
+.life-specimen::before {
+  inset: 14%;
+  background:
+    linear-gradient(90deg, rgba(247, 242, 223, 0.12) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(247, 242, 223, 0.12) 1px, transparent 1px);
+  background-size: 13px 13px;
+}
+
+.life-specimen::after {
+  left: 54%;
+  top: 32%;
+  width: 30%;
+  height: 30%;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(242, 215, 120, 0.98) 0 5px, transparent 6px),
+    radial-gradient(circle at 68% 50%, rgba(242, 215, 120, 0.92) 0 5px, transparent 6px),
+    radial-gradient(circle at 18% 68%, rgba(114, 196, 164, 0.9) 0 5px, transparent 6px),
+    radial-gradient(circle at 50% 68%, rgba(240, 140, 97, 0.88) 0 5px, transparent 6px),
+    radial-gradient(circle at 82% 82%, rgba(242, 215, 120, 0.88) 0 5px, transparent 6px);
+  filter: drop-shadow(0 0 14px rgba(242, 215, 120, 0.42));
+  transform: rotate(8deg);
+}
+
 .no-receipt-specimen {
   background:
     radial-gradient(circle at 60% 38%, rgba(255, 248, 214, 0.94) 0 10%, transparent 11%),

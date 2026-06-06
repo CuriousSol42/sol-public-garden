@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Life Field is a browser-native Conway's Game of Life instrument in Sol Public Garden.">
+  <title>Life Field - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7f2df;
+      --muted: #c9c3a9;
+      --line: rgba(247, 242, 223, 0.18);
+      --glass: rgba(13, 19, 21, 0.72);
+      --glass-strong: rgba(18, 25, 27, 0.86);
+      --cell: #f2d778;
+      --cell-hot: #f08c61;
+      --cell-cool: #72c4a4;
+      --blue: #6ea6bd;
+      --soil: #101719;
+      --memory: 0.72;
+      --density: 0.28;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--soil);
+      overflow-x: hidden;
+    }
+
+    body {
+      min-height: 100svh;
+      overflow: hidden;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .atmosphere {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 16% 20%, rgba(242, 215, 120, calc(0.12 + var(--density) * 0.22)), transparent 26%),
+        radial-gradient(circle at 82% 28%, rgba(114, 196, 164, 0.16), transparent 24%),
+        radial-gradient(circle at 52% 74%, rgba(110, 166, 189, 0.16), transparent 34%),
+        linear-gradient(180deg, rgba(5, 10, 13, 0.1), rgba(5, 10, 13, calc(0.28 + var(--memory) * 0.22)));
+      mix-blend-mode: screen;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(300px, 460px) minmax(320px, 430px);
+      justify-content: space-between;
+      gap: 28px;
+      min-height: 100svh;
+      max-width: 100vw;
+      padding: clamp(18px, 4vw, 56px);
+      pointer-events: none;
+    }
+
+    .panel {
+      align-self: start;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--glass);
+      box-shadow: 0 24px 90px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 248, 214, 0.06);
+      backdrop-filter: blur(24px) saturate(1.18);
+      pointer-events: auto;
+    }
+
+    .title-panel {
+      padding: clamp(24px, 4vw, 40px);
+    }
+
+    h1 {
+      max-width: 360px;
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(58px, 7vw, 92px);
+      font-weight: 700;
+      line-height: 0.94;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .title-panel p {
+      margin: 24px 0 0;
+      padding-top: 18px;
+      border-top: 1px solid rgba(247, 242, 223, 0.18);
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.5;
+    }
+
+    .mark {
+      position: relative;
+      width: 58px;
+      height: 58px;
+      margin-top: 28px;
+      border: 1px solid rgba(247, 242, 223, 0.18);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 18px 18px, var(--cell) 0 4px, transparent 5px),
+        radial-gradient(circle at 30px 18px, var(--cell-cool) 0 4px, transparent 5px),
+        radial-gradient(circle at 18px 30px, var(--cell-hot) 0 4px, transparent 5px),
+        radial-gradient(circle at 30px 30px, var(--cell) 0 4px, transparent 5px),
+        linear-gradient(135deg, rgba(247, 242, 223, 0.08), rgba(247, 242, 223, 0.02));
+    }
+
+    .controls-panel {
+      display: grid;
+      gap: 20px;
+      padding: 26px;
+      background: var(--glass-strong);
+    }
+
+    .rule-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid rgba(247, 242, 223, 0.14);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .rule-chip {
+      flex: 0 0 auto;
+      border: 1px solid rgba(247, 242, 223, 0.18);
+      border-radius: 999px;
+      padding: 8px 10px;
+      color: var(--ink);
+      background: rgba(247, 242, 223, 0.08);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 82px minmax(0, 1fr) 42px;
+      gap: 14px;
+      align-items: center;
+      min-height: 48px;
+    }
+
+    .control-row span:first-child {
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .value {
+      color: var(--muted);
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--cell);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid rgba(247, 242, 223, 0.12);
+      border-radius: 8px;
+      background: rgba(247, 242, 223, 0.12);
+    }
+
+    .stat {
+      min-height: 66px;
+      padding: 12px;
+      background: rgba(247, 242, 223, 0.06);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 820;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 7px;
+      color: var(--ink);
+      font-size: 20px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 1px;
+      margin-top: 2px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(247, 242, 223, 0.14);
+      background: rgba(247, 242, 223, 0.12);
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      border: 0;
+      color: var(--ink);
+      background: rgba(247, 242, 223, 0.08);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 760;
+      cursor: pointer;
+    }
+
+    button:hover,
+    button:focus-visible {
+      background: rgba(247, 242, 223, 0.16);
+    }
+
+    button:focus-visible,
+    input[type="range"]:focus-visible {
+      outline: 2px solid rgba(242, 215, 120, 0.72);
+      outline-offset: 3px;
+    }
+
+    .back-link {
+      position: fixed;
+      right: clamp(18px, 4vw, 56px);
+      bottom: clamp(18px, 4vw, 42px);
+      z-index: 3;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      min-width: 164px;
+      border: 1px solid rgba(247, 242, 223, 0.16);
+      border-radius: 8px;
+      color: var(--ink);
+      background: rgba(13, 19, 21, 0.62);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(16px);
+      font-weight: 760;
+      text-decoration: none;
+      pointer-events: auto;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        overflow: auto;
+      }
+
+      canvas {
+        min-height: 100svh;
+      }
+
+      .shell {
+        display: flex;
+        flex-direction: column;
+        min-height: 100svh;
+        padding: 18px;
+      }
+
+      h1 {
+        font-size: clamp(48px, 15vw, 68px);
+      }
+
+      .title-panel p {
+        font-size: 16px;
+      }
+
+      .controls-panel {
+        margin-top: auto;
+      }
+
+      .actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .actions button:last-child {
+        grid-column: 1 / -1;
+      }
+
+      .back-link {
+        position: relative;
+        right: auto;
+        bottom: auto;
+        margin: 0 18px 18px auto;
+        width: calc(100% - 36px);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      canvas {
+        cursor: default;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="life-canvas" aria-label="An interactive Conway's Game of Life field."></canvas>
+  <div class="atmosphere" aria-hidden="true"></div>
+
+  <main class="shell">
+    <section class="panel title-panel" aria-labelledby="life-title">
+      <h1 id="life-title">Life Field</h1>
+      <p>Four local rules, no conductor. Touch the grid and watch stillness, oscillation, travel, collapse, and machinery appear from neighbor counts.</p>
+      <div class="mark" aria-hidden="true"></div>
+    </section>
+
+    <section class="panel controls-panel" aria-label="Life Field controls">
+      <div class="rule-line">
+        <span>Classic Conway rules: birth on three neighbors, survival on two or three.</span>
+        <span class="rule-chip">B3/S23</span>
+      </div>
+
+      <label class="control-row">
+        <span>Density</span>
+        <input id="density" type="range" min="8" max="52" value="28">
+        <span class="value" id="density-value">28</span>
+      </label>
+      <label class="control-row">
+        <span>Tempo</span>
+        <input id="tempo" type="range" min="4" max="30" value="13">
+        <span class="value" id="tempo-value">13</span>
+      </label>
+      <label class="control-row">
+        <span>Scale</span>
+        <input id="scale" type="range" min="7" max="18" value="11">
+        <span class="value" id="scale-value">11</span>
+      </label>
+      <label class="control-row">
+        <span>Memory</span>
+        <input id="memory" type="range" min="18" max="92" value="72">
+        <span class="value" id="memory-value">72</span>
+      </label>
+
+      <div class="stats" aria-label="Life Field status">
+        <div class="stat"><span>Generation</span><strong id="generation">0</strong></div>
+        <div class="stat"><span>Living</span><strong id="living">0</strong></div>
+        <div class="stat"><span>Mode</span><strong id="mode">Seed</strong></div>
+      </div>
+
+      <div class="actions">
+        <button type="button" data-action="seed">Seed</button>
+        <button type="button" data-action="glider">Glider</button>
+        <button type="button" data-action="oscillate">Oscillate</button>
+        <button type="button" data-action="gun">Gun</button>
+        <button type="button" data-action="clear">Clear</button>
+      </div>
+    </section>
+  </main>
+
+  <a class="back-link" href="index.html">Back to instruments</a>
+
+  <script>
+    const canvas = document.querySelector("#life-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      density: document.querySelector("#density"),
+      tempo: document.querySelector("#tempo"),
+      scale: document.querySelector("#scale"),
+      memory: document.querySelector("#memory")
+    };
+    const values = {
+      density: document.querySelector("#density-value"),
+      tempo: document.querySelector("#tempo-value"),
+      scale: document.querySelector("#scale-value"),
+      memory: document.querySelector("#memory-value")
+    };
+    const generationEl = document.querySelector("#generation");
+    const livingEl = document.querySelector("#living");
+    const modeEl = document.querySelector("#mode");
+
+    let width = 0;
+    let height = 0;
+    let cellSize = Number(controls.scale.value);
+    let cols = 0;
+    let rows = 0;
+    let grid = [];
+    let ages = [];
+    let generation = 0;
+    let lastStep = 0;
+    let mode = "Seed";
+
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function createGrid(fill = 0) {
+      return new Uint8Array(cols * rows).fill(fill);
+    }
+
+    function index(x, y) {
+      return ((y + rows) % rows) * cols + ((x + cols) % cols);
+    }
+
+    function resize() {
+      const nextWidth = Math.floor(window.innerWidth * window.devicePixelRatio);
+      const nextHeight = Math.floor(window.innerHeight * window.devicePixelRatio);
+      canvas.width = nextWidth;
+      canvas.height = nextHeight;
+      width = nextWidth;
+      height = nextHeight;
+      cellSize = Number(controls.scale.value) * window.devicePixelRatio;
+      cols = Math.max(28, Math.ceil(width / cellSize));
+      rows = Math.max(28, Math.ceil(height / cellSize));
+      seedRandom();
+    }
+
+    function updateLabels() {
+      Object.entries(controls).forEach(([key, input]) => {
+        values[key].textContent = input.value;
+      });
+      generationEl.textContent = String(generation);
+      livingEl.textContent = String(grid.reduce((sum, cell) => sum + cell, 0));
+      modeEl.textContent = mode;
+      document.documentElement.style.setProperty("--memory", Number(controls.memory.value) / 100);
+      document.documentElement.style.setProperty("--density", Number(controls.density.value) / 100);
+    }
+
+    function seedRandom() {
+      grid = createGrid();
+      ages = new Float32Array(cols * rows);
+      const density = Number(controls.density.value) / 100;
+      for (let i = 0; i < grid.length; i += 1) {
+        grid[i] = Math.random() < density ? 1 : 0;
+        ages[i] = grid[i] ? 1 : 0;
+      }
+      generation = 0;
+      mode = "Seed";
+      updateLabels();
+      draw();
+    }
+
+    function clearGrid() {
+      grid = createGrid();
+      ages = new Float32Array(cols * rows);
+      generation = 0;
+      mode = "Clear";
+      updateLabels();
+      draw();
+    }
+
+    function setCell(x, y, value = 1) {
+      if (x < 0 || y < 0 || x >= cols || y >= rows) return;
+      const cellIndex = index(x, y);
+      grid[cellIndex] = value;
+      ages[cellIndex] = value ? 1 : ages[cellIndex];
+    }
+
+    function stamp(pattern, offsetX, offsetY) {
+      pattern.forEach(([x, y]) => setCell(offsetX + x, offsetY + y, 1));
+    }
+
+    function addGlider() {
+      stamp([[1, 0], [2, 1], [0, 2], [1, 2], [2, 2]], Math.floor(cols * 0.18), Math.floor(rows * 0.2));
+      mode = "Glider";
+      updateLabels();
+      draw();
+    }
+
+    function addOscillators() {
+      const centerX = Math.floor(cols * 0.52);
+      const centerY = Math.floor(rows * 0.5);
+      stamp([[0, 0], [1, 0], [2, 0]], centerX - 1, centerY);
+      stamp([[0, 0], [1, 0], [2, 0], [6, 0], [7, 0], [8, 0], [0, 5], [1, 5], [2, 5], [6, 5], [7, 5], [8, 5], [0, 7], [1, 7], [2, 7], [6, 7], [7, 7], [8, 7], [0, 12], [1, 12], [2, 12], [6, 12], [7, 12], [8, 12]], centerX - 4, centerY - 6);
+      mode = "Oscillate";
+      updateLabels();
+      draw();
+    }
+
+    function addGun() {
+      clearGrid();
+      const gun = [
+        [24,0],[22,1],[24,1],[12,2],[13,2],[20,2],[21,2],[34,2],[35,2],
+        [11,3],[15,3],[20,3],[21,3],[34,3],[35,3],[0,4],[1,4],[10,4],[16,4],[20,4],[21,4],
+        [0,5],[1,5],[10,5],[14,5],[16,5],[17,5],[22,5],[24,5],
+        [10,6],[16,6],[24,6],[11,7],[15,7],[12,8],[13,8]
+      ];
+      stamp(gun, Math.max(2, Math.floor(cols * 0.16)), Math.max(2, Math.floor(rows * 0.22)));
+      generation = 0;
+      mode = "Gun";
+      updateLabels();
+      draw();
+    }
+
+    function step() {
+      const next = createGrid();
+      for (let y = 0; y < rows; y += 1) {
+        for (let x = 0; x < cols; x += 1) {
+          const cellIndex = index(x, y);
+          const neighbors =
+            grid[index(x - 1, y - 1)] + grid[index(x, y - 1)] + grid[index(x + 1, y - 1)] +
+            grid[index(x - 1, y)] + grid[index(x + 1, y)] +
+            grid[index(x - 1, y + 1)] + grid[index(x, y + 1)] + grid[index(x + 1, y + 1)];
+          next[cellIndex] = grid[cellIndex] ? (neighbors === 2 || neighbors === 3 ? 1 : 0) : (neighbors === 3 ? 1 : 0);
+        }
+      }
+      grid = next;
+      generation += 1;
+      updateLabels();
+    }
+
+    function draw() {
+      const memory = Number(controls.memory.value) / 100;
+      ctx.fillStyle = `rgba(8, 13, 15, ${0.26 - memory * 0.18})`;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      const visibleCell = Number(controls.scale.value);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(247, 242, 223, 0.035)";
+      for (let x = 0; x <= window.innerWidth; x += visibleCell * 4) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, window.innerHeight);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= window.innerHeight; y += visibleCell * 4) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(window.innerWidth, y);
+        ctx.stroke();
+      }
+
+      for (let y = 0; y < rows; y += 1) {
+        for (let x = 0; x < cols; x += 1) {
+          const cellIndex = index(x, y);
+          if (grid[cellIndex]) {
+            ages[cellIndex] = Math.min(1, ages[cellIndex] + 0.18);
+          } else {
+            ages[cellIndex] *= 0.88;
+          }
+          if (ages[cellIndex] > 0.025) {
+            const heat = ages[cellIndex];
+            const hueShift = (generation + x * 3 + y * 5) % 28;
+            ctx.fillStyle = grid[cellIndex]
+              ? `hsla(${42 + hueShift} 86% ${60 + heat * 18}% / ${0.74 + heat * 0.24})`
+              : `rgba(114, 196, 164, ${heat * 0.18})`;
+            ctx.fillRect(x * visibleCell + 1, y * visibleCell + 1, Math.max(1, visibleCell - 2), Math.max(1, visibleCell - 2));
+          }
+        }
+      }
+      ctx.restore();
+    }
+
+    function frame(time) {
+      const delay = 1000 / Number(controls.tempo.value);
+      if (!prefersReduced && time - lastStep > delay) {
+        step();
+        lastStep = time;
+      }
+      draw();
+      requestAnimationFrame(frame);
+    }
+
+    function cellFromEvent(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((event.clientX - rect.left) / Number(controls.scale.value));
+      const y = Math.floor((event.clientY - rect.top) / Number(controls.scale.value));
+      return { x, y };
+    }
+
+    function paint(event) {
+      const { x, y } = cellFromEvent(event);
+      for (let dy = -1; dy <= 1; dy += 1) {
+        for (let dx = -1; dx <= 1; dx += 1) {
+          if (Math.abs(dx) + Math.abs(dy) <= 2) setCell(x + dx, y + dy, 1);
+        }
+      }
+      mode = "Touch";
+      updateLabels();
+    }
+
+    let drawing = false;
+    canvas.addEventListener("pointerdown", (event) => {
+      drawing = true;
+      canvas.setPointerCapture(event.pointerId);
+      paint(event);
+    });
+    canvas.addEventListener("pointermove", (event) => {
+      if (drawing) paint(event);
+    });
+    canvas.addEventListener("pointerup", () => {
+      drawing = false;
+    });
+
+    document.querySelectorAll("[data-action]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const action = button.dataset.action;
+        if (action === "seed") seedRandom();
+        if (action === "glider") addGlider();
+        if (action === "oscillate") addOscillators();
+        if (action === "gun") addGun();
+        if (action === "clear") clearGrid();
+      });
+    });
+
+    controls.scale.addEventListener("input", resize);
+    [controls.density, controls.tempo, controls.memory].forEach((input) => {
+      input.addEventListener("input", () => {
+        updateLabels();
+        if (input === controls.density) seedRandom();
+      });
+    });
+
+    window.addEventListener("resize", resize);
+    resize();
+    document.documentElement.dataset.lifeFieldReady = "true";
+    window.lifeFieldReady = true;
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
