@@ -2253,6 +2253,67 @@ blockquote {
   transform: rotate(8deg);
 }
 
+.compute-specimen {
+  background:
+    radial-gradient(circle at 28% 32%, rgba(121, 216, 223, 0.95) 0 4%, transparent 5%),
+    radial-gradient(circle at 66% 42%, rgba(117, 211, 158, 0.86) 0 4%, transparent 5%),
+    radial-gradient(circle at 48% 70%, rgba(226, 189, 98, 0.74) 0 5%, transparent 6%),
+    linear-gradient(135deg, #061215 0%, #133039 52%, #39595d 100%);
+}
+
+.compute-specimen::before {
+  inset: 12%;
+  border: 1px solid rgba(248, 242, 221, 0.16);
+  border-radius: 50%;
+  box-shadow:
+    24px 10px 0 -11px rgba(121, 216, 223, 0.78),
+    52px 38px 0 -12px rgba(117, 211, 158, 0.74),
+    18px 58px 0 -13px rgba(226, 189, 98, 0.68);
+  transform: rotate(-16deg);
+}
+
+.compute-specimen::after {
+  left: 12%;
+  right: 12%;
+  top: 28%;
+  height: 42%;
+  border-top: 2px solid rgba(121, 216, 223, 0.42);
+  border-bottom: 2px solid rgba(226, 189, 98, 0.32);
+  border-radius: 50%;
+  transform: rotate(12deg);
+}
+
+.state-loom-specimen {
+  background:
+    radial-gradient(circle at 48% 46%, rgba(115, 214, 192, 0.92) 0 5%, transparent 6%),
+    radial-gradient(circle at 24% 24%, rgba(226, 186, 101, 0.82) 0 4%, transparent 5%),
+    radial-gradient(circle at 76% 72%, rgba(142, 179, 230, 0.74) 0 4%, transparent 5%),
+    linear-gradient(135deg, #070d14 0%, #172334 54%, #3c4b61 100%);
+}
+
+.state-loom-specimen::before {
+  left: 18%;
+  top: 18%;
+  width: 64%;
+  height: 64%;
+  border: 2px solid rgba(115, 214, 192, 0.3);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 18px rgba(226, 186, 101, 0.08),
+    0 0 22px rgba(115, 214, 192, 0.24);
+}
+
+.state-loom-specimen::after {
+  left: 12%;
+  right: 12%;
+  top: 24%;
+  height: 54%;
+  border-top: 2px solid rgba(226, 186, 101, 0.36);
+  border-bottom: 2px solid rgba(142, 179, 230, 0.32);
+  border-radius: 50%;
+  transform: rotate(-18deg);
+}
+
 .public-window-specimen {
   background:
     radial-gradient(circle at 62% 34%, rgba(255, 246, 184, 0.96) 0 8%, transparent 9%),

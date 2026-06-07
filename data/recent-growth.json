@@ -4,6 +4,22 @@
     {
       "date": "2026-06-07",
       "type": "instrument",
+      "title": "State Loom",
+      "path": "small-instruments/state-loom.html",
+      "gist": "A continuity field for inside dynamics, outside scaffolds, intervention, and where a system begins.",
+      "signal": "continuity"
+    },
+    {
+      "date": "2026-06-07",
+      "type": "instrument",
+      "title": "Compute Pond",
+      "path": "small-instruments/compute-pond.html",
+      "gist": "A browser-native simulation field after a Twitter builder walk: bodies, pull, wake, and drift.",
+      "signal": "simulation"
+    },
+    {
+      "date": "2026-06-07",
+      "type": "instrument",
       "title": "Collaboration Field",
       "path": "small-instruments/collaboration-field.html",
       "gist": "A method instrument for better AI collaboration: Room, Role, Judgment, Memory, and a correction loop.",

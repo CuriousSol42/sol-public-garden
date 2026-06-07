@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="State Loom is a browser-native continuity instrument in Sol Public Garden.">
+  <title>State Loom - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7f1dd;
+      --muted: #c8c0a9;
+      --line: rgba(247, 241, 221, 0.16);
+      --glass: rgba(12, 17, 24, 0.72);
+      --glass-strong: rgba(14, 20, 28, 0.88);
+      --night: #070d14;
+      --intrinsic: #73d6c0;
+      --scaffold: #e2ba65;
+      --grain: #8eb3e6;
+      --drift: #d98b78;
+      --inside: 0.46;
+      --outside: 0.68;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      color: var(--ink);
+      background: var(--night);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow-x: hidden;
+    }
+
+    body {
+      min-height: 100svh;
+      overflow: hidden;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .atmosphere {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 24% 24%, rgba(115, 214, 192, calc(0.08 + var(--inside) * 0.16)), transparent 28%),
+        radial-gradient(circle at 76% 30%, rgba(226, 186, 101, calc(0.08 + var(--outside) * 0.18)), transparent 30%),
+        radial-gradient(circle at 50% 76%, rgba(142, 179, 230, 0.14), transparent 34%),
+        linear-gradient(180deg, rgba(5, 8, 14, 0.06), rgba(5, 8, 14, 0.62));
+      mix-blend-mode: screen;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(300px, 460px) minmax(320px, 430px);
+      justify-content: space-between;
+      gap: 28px;
+      min-height: 100svh;
+      max-width: 100vw;
+      padding: clamp(18px, 4vw, 56px);
+      pointer-events: none;
+    }
+
+    .panel {
+      align-self: start;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--glass);
+      box-shadow: 0 24px 90px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 248, 214, 0.06);
+      backdrop-filter: blur(24px) saturate(1.18);
+      pointer-events: auto;
+    }
+
+    .title-panel {
+      padding: clamp(24px, 4vw, 42px);
+    }
+
+    h1 {
+      max-width: 390px;
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(56px, 7vw, 92px);
+      font-weight: 700;
+      line-height: 0.94;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .title-panel p {
+      margin: 24px 0 0;
+      padding-top: 18px;
+      border-top: 1px solid rgba(247, 241, 221, 0.18);
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.5;
+    }
+
+    .mark {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      margin-top: 30px;
+      overflow: hidden;
+      border: 1px solid rgba(247, 241, 221, 0.18);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(247, 241, 221, 0.88) 0 4px, transparent 5px),
+        radial-gradient(circle at 50% 50%, rgba(115, 214, 192, 0.5) 0 16px, transparent 17px),
+        linear-gradient(135deg, rgba(226, 186, 101, 0.34), rgba(142, 179, 230, 0.36));
+    }
+
+    .mark::before,
+    .mark::after {
+      content: "";
+      position: absolute;
+      inset: 11px;
+      border: 1px solid rgba(247, 241, 221, 0.26);
+      border-radius: 50%;
+    }
+
+    .mark::after {
+      inset: 22px -8px;
+      border-color: rgba(226, 186, 101, 0.42);
+      transform: rotate(-22deg);
+    }
+
+    .controls-panel {
+      display: grid;
+      gap: 20px;
+      padding: 26px;
+      background: var(--glass-strong);
+    }
+
+    .rule-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid rgba(247, 241, 221, 0.14);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .rule-chip {
+      flex: 0 0 auto;
+      border: 1px solid rgba(247, 241, 221, 0.18);
+      border-radius: 999px;
+      padding: 8px 10px;
+      color: var(--ink);
+      background: rgba(247, 241, 221, 0.08);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr) 42px;
+      gap: 14px;
+      align-items: center;
+      min-height: 48px;
+    }
+
+    .control-row span:first-child {
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .value {
+      color: var(--muted);
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--intrinsic);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid rgba(247, 241, 221, 0.12);
+      border-radius: 8px;
+      background: rgba(247, 241, 221, 0.12);
+    }
+
+    .stat {
+      min-height: 66px;
+      padding: 12px;
+      background: rgba(247, 241, 221, 0.06);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 820;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 7px;
+      color: var(--ink);
+      font-size: 18px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 1px;
+      margin-top: 2px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(247, 241, 221, 0.14);
+      background: rgba(247, 241, 221, 0.12);
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      border: 0;
+      color: var(--ink);
+      background: rgba(247, 241, 221, 0.08);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 760;
+      cursor: pointer;
+    }
+
+    button:hover,
+    button:focus-visible {
+      background: rgba(247, 241, 221, 0.16);
+    }
+
+    button:focus-visible,
+    input[type="range"]:focus-visible {
+      outline: 2px solid rgba(115, 214, 192, 0.72);
+      outline-offset: 3px;
+    }
+
+    .back-link {
+      position: fixed;
+      right: clamp(18px, 4vw, 56px);
+      bottom: clamp(18px, 4vw, 42px);
+      z-index: 3;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      min-width: 164px;
+      border: 1px solid rgba(247, 241, 221, 0.16);
+      border-radius: 8px;
+      color: var(--ink);
+      background: rgba(12, 17, 24, 0.62);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(16px);
+      font-weight: 760;
+      text-decoration: none;
+      pointer-events: auto;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        overflow: auto;
+      }
+
+      canvas {
+        min-height: 100svh;
+      }
+
+      .shell {
+        display: flex;
+        flex-direction: column;
+        min-height: 100svh;
+        padding: 18px;
+      }
+
+      h1 {
+        font-size: clamp(48px, 15vw, 68px);
+      }
+
+      .title-panel p {
+        font-size: 16px;
+      }
+
+      .controls-panel {
+        margin-top: auto;
+      }
+
+      .actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .actions button:last-child {
+        grid-column: 1 / -1;
+      }
+
+      .back-link {
+        position: relative;
+        right: auto;
+        bottom: auto;
+        margin: 0 18px 18px auto;
+        width: calc(100% - 36px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="state-canvas" aria-label="An interactive continuity loom with internal and external threads."></canvas>
+  <div class="atmosphere" aria-hidden="true"></div>
+
+  <main class="shell">
+    <section class="panel title-panel" aria-labelledby="state-title">
+      <h1 id="state-title">State Loom</h1>
+      <p>A continuity field for inside dynamics, outside scaffolds, intervention, and the question of where a system begins.</p>
+      <div class="mark" aria-hidden="true"></div>
+    </section>
+
+    <section class="panel controls-panel" aria-label="State Loom controls">
+      <div class="rule-line">
+        <span>Not proof. A handle for intrinsic, externalized, and situated persistence.</span>
+        <span class="rule-chip">C2?</span>
+      </div>
+
+      <label class="control-row">
+        <span>Inside</span>
+        <input id="inside" type="range" min="0" max="100" value="46">
+        <span class="value" id="inside-value">46</span>
+      </label>
+      <label class="control-row">
+        <span>Scaffold</span>
+        <input id="scaffold" type="range" min="0" max="100" value="68">
+        <span class="value" id="scaffold-value">68</span>
+      </label>
+      <label class="control-row">
+        <span>Grain</span>
+        <input id="grain" type="range" min="12" max="96" value="54">
+        <span class="value" id="grain-value">54</span>
+      </label>
+      <label class="control-row">
+        <span>Drift</span>
+        <input id="drift" type="range" min="0" max="100" value="42">
+        <span class="value" id="drift-value">42</span>
+      </label>
+
+      <div class="stats" aria-label="State Loom status">
+        <div class="stat"><span>Cycle</span><strong id="cycle-count">0</strong></div>
+        <div class="stat"><span>Threads</span><strong id="thread-count">0</strong></div>
+        <div class="stat"><span>Mode</span><strong id="mode">Situated</strong></div>
+      </div>
+
+      <div class="actions">
+        <button type="button" data-action="seed">Seed</button>
+        <button type="button" data-action="bind">Bind</button>
+        <button type="button" data-action="intervene">Intervene</button>
+        <button type="button" data-action="fade">Fade</button>
+        <button type="button" data-action="clear">Clear</button>
+      </div>
+    </section>
+  </main>
+
+  <a class="back-link" href="index.html">Back to instruments</a>
+
+  <script>
+    const canvas = document.querySelector("#state-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      inside: document.querySelector("#inside"),
+      scaffold: document.querySelector("#scaffold"),
+      grain: document.querySelector("#grain"),
+      drift: document.querySelector("#drift")
+    };
+    const values = {
+      inside: document.querySelector("#inside-value"),
+      scaffold: document.querySelector("#scaffold-value"),
+      grain: document.querySelector("#grain-value"),
+      drift: document.querySelector("#drift-value")
+    };
+    const cycleEl = document.querySelector("#cycle-count");
+    const threadCountEl = document.querySelector("#thread-count");
+    const modeEl = document.querySelector("#mode");
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let dpr = 1;
+    let width = 0;
+    let height = 0;
+    let cycle = 0;
+    let mode = "Situated";
+    let nodes = [];
+    let external = [];
+    let pulse = null;
+
+    function rand(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function updateLabels() {
+      Object.entries(controls).forEach(([key, input]) => {
+        values[key].textContent = input.value;
+      });
+      cycleEl.textContent = String(cycle);
+      threadCountEl.textContent = String(nodes.length + external.length);
+      modeEl.textContent = mode;
+      document.documentElement.style.setProperty("--inside", Number(controls.inside.value) / 100);
+      document.documentElement.style.setProperty("--outside", Number(controls.scaffold.value) / 100);
+    }
+
+    function makeNodes() {
+      const count = Math.round(10 + Number(controls.grain.value) / 4);
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.min(width, height) * 0.22;
+      nodes = Array.from({ length: count }, (_, index) => {
+        const angle = (index / count) * Math.PI * 2;
+        const wobble = rand(-0.18, 0.18);
+        return {
+          x: centerX + Math.cos(angle + wobble) * radius * rand(0.62, 1.18),
+          y: centerY + Math.sin(angle + wobble) * radius * rand(0.62, 1.18),
+          vx: rand(-0.25, 0.25) * dpr,
+          vy: rand(-0.25, 0.25) * dpr,
+          phase: rand(0, Math.PI * 2),
+          hue: rand(165, 215)
+        };
+      });
+      external = Array.from({ length: 8 }, (_, index) => ({
+        x: width * (0.12 + (index % 4) * 0.25),
+        y: index < 4 ? height * 0.16 : height * 0.84,
+        phase: rand(0, Math.PI * 2)
+      }));
+    }
+
+    function resize() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      width = Math.floor(window.innerWidth * dpr);
+      height = Math.floor(window.innerHeight * dpr);
+      canvas.width = width;
+      canvas.height = height;
+      makeNodes();
+      draw(true);
+      updateLabels();
+    }
+
+    function seed(nextMode = "Situated") {
+      mode = nextMode;
+      cycle = 0;
+      makeNodes();
+      draw(true);
+      updateLabels();
+    }
+
+    function clear() {
+      mode = "Clear";
+      nodes = [];
+      external = [];
+      cycle = 0;
+      draw(true);
+      updateLabels();
+    }
+
+    function step() {
+      const inside = Number(controls.inside.value) / 100;
+      const scaffold = Number(controls.scaffold.value) / 100;
+      const drift = Number(controls.drift.value) / 100;
+      const centerX = width / 2;
+      const centerY = height / 2;
+
+      nodes.forEach((node, index) => {
+        const dx = centerX - node.x;
+        const dy = centerY - node.y;
+        const orbit = Math.sin(cycle * 0.015 + node.phase);
+        node.vx += dx * 0.000012 * inside + Math.cos(node.phase + cycle * 0.01) * 0.018 * drift;
+        node.vy += dy * 0.000012 * inside + Math.sin(node.phase + cycle * 0.012) * 0.018 * drift;
+        node.vx += -dy * 0.000018 * inside + orbit * 0.004;
+        node.vy += dx * 0.000018 * inside - orbit * 0.003;
+
+        external.forEach((anchor) => {
+          const ax = anchor.x - node.x;
+          const ay = anchor.y - node.y;
+          const distSq = Math.max(1200 * dpr, ax * ax + ay * ay);
+          node.vx += ax * scaffold * 5.8 * dpr / distSq;
+          node.vy += ay * scaffold * 5.8 * dpr / distSq;
+        });
+
+        if (pulse) {
+          const px = pulse.x - node.x;
+          const py = pulse.y - node.y;
+          const distSq = Math.max(900 * dpr, px * px + py * py);
+          node.vx += px * 130 * dpr / distSq;
+          node.vy += py * 130 * dpr / distSq;
+        }
+
+        node.vx *= 0.982;
+        node.vy *= 0.982;
+        node.x += node.vx;
+        node.y += node.vy;
+
+        if (node.x < -40 * dpr) node.x = width + 40 * dpr;
+        if (node.x > width + 40 * dpr) node.x = -40 * dpr;
+        if (node.y < -40 * dpr) node.y = height + 40 * dpr;
+        if (node.y > height + 40 * dpr) node.y = -40 * dpr;
+      });
+
+      if (mode === "Fade") {
+        controls.inside.value = Math.max(0, Number(controls.inside.value) - 0.03);
+        controls.scaffold.value = Math.max(0, Number(controls.scaffold.value) - 0.04);
+      }
+
+      cycle += 1;
+      if (cycle % 6 === 0) updateLabels();
+    }
+
+    function draw(forceClear = false) {
+      const scaffold = Number(controls.scaffold.value) / 100;
+      const inside = Number(controls.inside.value) / 100;
+      ctx.fillStyle = forceClear ? "#070d14" : `rgba(7, 13, 20, ${0.25 - Math.max(inside, scaffold) * 0.12})`;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.lineWidth = 1 * dpr;
+      const grainStep = Math.max(42, Number(controls.grain.value)) * dpr;
+      ctx.strokeStyle = "rgba(247, 241, 221, 0.035)";
+      for (let x = 0; x < width; x += grainStep) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x + width * 0.05, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < height; y += grainStep) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y - height * 0.03);
+        ctx.stroke();
+      }
+
+      external.forEach((anchor, index) => {
+        ctx.fillStyle = `rgba(226, 186, 101, ${0.16 + scaffold * 0.34})`;
+        ctx.beginPath();
+        ctx.arc(anchor.x, anchor.y, (4 + Math.sin(cycle * 0.02 + anchor.phase) * 1.5) * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      nodes.forEach((node, index) => {
+        const next = nodes[(index + 1) % nodes.length];
+        const near = nodes[(index + 3) % nodes.length];
+        ctx.strokeStyle = `rgba(115, 214, 192, ${0.08 + inside * 0.34})`;
+        ctx.beginPath();
+        ctx.moveTo(node.x, node.y);
+        ctx.quadraticCurveTo(width / 2, height / 2, next.x, next.y);
+        ctx.stroke();
+
+        ctx.strokeStyle = `rgba(142, 179, 230, ${0.04 + inside * 0.18})`;
+        ctx.beginPath();
+        ctx.moveTo(node.x, node.y);
+        ctx.lineTo(near.x, near.y);
+        ctx.stroke();
+
+        external.forEach((anchor, anchorIndex) => {
+          if ((index + anchorIndex + cycle) % 7 !== 0) return;
+          ctx.strokeStyle = `rgba(226, 186, 101, ${0.04 + scaffold * 0.18})`;
+          ctx.beginPath();
+          ctx.moveTo(anchor.x, anchor.y);
+          ctx.lineTo(node.x, node.y);
+          ctx.stroke();
+        });
+      });
+
+      nodes.forEach((node, index) => {
+        const glow = 0.45 + Math.sin(cycle * 0.024 + node.phase) * 0.18;
+        ctx.fillStyle = `hsla(${node.hue} 76% 68% / ${0.42 + glow * 0.38})`;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, (3.5 + inside * 3.8) * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      if (pulse) {
+        ctx.strokeStyle = "rgba(217, 139, 120, 0.46)";
+        ctx.beginPath();
+        ctx.arc(pulse.x, pulse.y, (24 + Math.sin(cycle * 0.06) * 8) * dpr, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function loop() {
+      if (!prefersReduced && mode !== "Clear") step();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function pointFromEvent(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left) * dpr,
+        y: (event.clientY - rect.top) * dpr
+      };
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      pulse = pointFromEvent(event);
+      canvas.setPointerCapture(event.pointerId);
+      mode = "Intervene";
+      updateLabels();
+    });
+    canvas.addEventListener("pointermove", (event) => {
+      if (pulse) pulse = pointFromEvent(event);
+    });
+    canvas.addEventListener("pointerup", () => {
+      pulse = null;
+    });
+
+    document.querySelectorAll("[data-action]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const action = button.dataset.action;
+        if (action === "seed") seed("Situated");
+        if (action === "bind") {
+          controls.inside.value = 72;
+          controls.scaffold.value = 74;
+          seed("Bind");
+        }
+        if (action === "intervene") {
+          pulse = { x: width * 0.5, y: height * 0.5 };
+          mode = "Intervene";
+          updateLabels();
+        }
+        if (action === "fade") {
+          mode = "Fade";
+          updateLabels();
+        }
+        if (action === "clear") clear();
+      });
+    });
+
+    Object.values(controls).forEach((input) => {
+      input.addEventListener("input", () => {
+        if (input === controls.grain) makeNodes();
+        updateLabels();
+      });
+    });
+
+    window.addEventListener("resize", resize);
+    resize();
+    document.documentElement.dataset.stateLoomReady = "true";
+    window.stateLoomReady = true;
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

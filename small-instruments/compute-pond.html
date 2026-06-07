@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Compute Pond is a browser-native simulation instrument in Sol Public Garden.">
+  <title>Compute Pond - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f8f2dd;
+      --muted: #c8c1aa;
+      --line: rgba(248, 242, 221, 0.16);
+      --glass: rgba(10, 18, 21, 0.72);
+      --glass-strong: rgba(12, 22, 26, 0.88);
+      --water: #071216;
+      --green: #75d39e;
+      --cyan: #79d8df;
+      --gold: #e2bd62;
+      --violet: #9b91dc;
+      --bodies: 0.54;
+      --wake: 0.64;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      color: var(--ink);
+      background: var(--water);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow-x: hidden;
+    }
+
+    body {
+      min-height: 100svh;
+      overflow: hidden;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .atmosphere {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(121, 216, 223, calc(0.1 + var(--bodies) * 0.18)), transparent 28%),
+        radial-gradient(circle at 78% 22%, rgba(117, 211, 158, 0.14), transparent 24%),
+        radial-gradient(circle at 48% 76%, rgba(226, 189, 98, calc(0.08 + var(--wake) * 0.16)), transparent 34%),
+        linear-gradient(180deg, rgba(5, 10, 13, 0.04), rgba(5, 10, 13, 0.58));
+      mix-blend-mode: screen;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(300px, 460px) minmax(320px, 430px);
+      justify-content: space-between;
+      gap: 28px;
+      min-height: 100svh;
+      max-width: 100vw;
+      padding: clamp(18px, 4vw, 56px);
+      pointer-events: none;
+    }
+
+    .panel {
+      align-self: start;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--glass);
+      box-shadow: 0 24px 90px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 248, 214, 0.06);
+      backdrop-filter: blur(24px) saturate(1.18);
+      pointer-events: auto;
+    }
+
+    .title-panel {
+      padding: clamp(24px, 4vw, 42px);
+    }
+
+    h1 {
+      max-width: 390px;
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(56px, 7vw, 92px);
+      font-weight: 700;
+      line-height: 0.94;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .title-panel p {
+      margin: 24px 0 0;
+      padding-top: 18px;
+      border-top: 1px solid rgba(248, 242, 221, 0.18);
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.5;
+    }
+
+    .mark {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      margin-top: 30px;
+      overflow: hidden;
+      border: 1px solid rgba(248, 242, 221, 0.18);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(248, 242, 221, 0.9) 0 4px, transparent 5px),
+        conic-gradient(from 20deg, rgba(121, 216, 223, 0.2), rgba(117, 211, 158, 0.58), rgba(226, 189, 98, 0.44), rgba(121, 216, 223, 0.2));
+    }
+
+    .mark::before,
+    .mark::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border: 1px solid rgba(248, 242, 221, 0.32);
+      border-radius: 50%;
+    }
+
+    .mark::after {
+      inset: 22px;
+      border-color: rgba(121, 216, 223, 0.52);
+    }
+
+    .controls-panel {
+      display: grid;
+      gap: 20px;
+      padding: 26px;
+      background: var(--glass-strong);
+    }
+
+    .rule-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid rgba(248, 242, 221, 0.14);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .rule-chip {
+      flex: 0 0 auto;
+      border: 1px solid rgba(248, 242, 221, 0.18);
+      border-radius: 999px;
+      padding: 8px 10px;
+      color: var(--ink);
+      background: rgba(248, 242, 221, 0.08);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 82px minmax(0, 1fr) 42px;
+      gap: 14px;
+      align-items: center;
+      min-height: 48px;
+    }
+
+    .control-row span:first-child {
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .value {
+      color: var(--muted);
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--cyan);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid rgba(248, 242, 221, 0.12);
+      border-radius: 8px;
+      background: rgba(248, 242, 221, 0.12);
+    }
+
+    .stat {
+      min-height: 66px;
+      padding: 12px;
+      background: rgba(248, 242, 221, 0.06);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 820;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 7px;
+      color: var(--ink);
+      font-size: 20px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 1px;
+      margin-top: 2px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(248, 242, 221, 0.14);
+      background: rgba(248, 242, 221, 0.12);
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      border: 0;
+      color: var(--ink);
+      background: rgba(248, 242, 221, 0.08);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 760;
+      cursor: pointer;
+    }
+
+    button:hover,
+    button:focus-visible {
+      background: rgba(248, 242, 221, 0.16);
+    }
+
+    button:focus-visible,
+    input[type="range"]:focus-visible {
+      outline: 2px solid rgba(121, 216, 223, 0.72);
+      outline-offset: 3px;
+    }
+
+    .back-link {
+      position: fixed;
+      right: clamp(18px, 4vw, 56px);
+      bottom: clamp(18px, 4vw, 42px);
+      z-index: 3;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      min-width: 164px;
+      border: 1px solid rgba(248, 242, 221, 0.16);
+      border-radius: 8px;
+      color: var(--ink);
+      background: rgba(10, 18, 21, 0.62);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(16px);
+      font-weight: 760;
+      text-decoration: none;
+      pointer-events: auto;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        overflow: auto;
+      }
+
+      canvas {
+        min-height: 100svh;
+      }
+
+      .shell {
+        display: flex;
+        flex-direction: column;
+        min-height: 100svh;
+        padding: 18px;
+      }
+
+      h1 {
+        font-size: clamp(48px, 15vw, 68px);
+      }
+
+      .title-panel p {
+        font-size: 16px;
+      }
+
+      .controls-panel {
+        margin-top: auto;
+      }
+
+      .actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .actions button:last-child {
+        grid-column: 1 / -1;
+      }
+
+      .back-link {
+        position: relative;
+        right: auto;
+        bottom: auto;
+        margin: 0 18px 18px auto;
+        width: calc(100% - 36px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="compute-canvas" aria-label="An interactive browser-native particle simulation pond."></canvas>
+  <div class="atmosphere" aria-hidden="true"></div>
+
+  <main class="shell">
+    <section class="panel title-panel" aria-labelledby="compute-title">
+      <h1 id="compute-title">Compute Pond</h1>
+      <p>A small simulation field after a builder walk: bodies, pull, wake, and drift, all moving in one shared browser surface.</p>
+      <div class="mark" aria-hidden="true"></div>
+    </section>
+
+    <section class="panel controls-panel" aria-label="Compute Pond controls">
+      <div class="rule-line">
+        <span>Inspired by WebGPU builder weather, written here as plain canvas: local forces, shared state, visible wake.</span>
+        <span class="rule-chip">canvas</span>
+      </div>
+
+      <label class="control-row">
+        <span>Bodies</span>
+        <input id="bodies" type="range" min="40" max="220" value="118">
+        <span class="value" id="bodies-value">118</span>
+      </label>
+      <label class="control-row">
+        <span>Pull</span>
+        <input id="pull" type="range" min="0" max="100" value="46">
+        <span class="value" id="pull-value">46</span>
+      </label>
+      <label class="control-row">
+        <span>Wake</span>
+        <input id="wake" type="range" min="18" max="94" value="64">
+        <span class="value" id="wake-value">64</span>
+      </label>
+      <label class="control-row">
+        <span>Drift</span>
+        <input id="drift" type="range" min="0" max="100" value="52">
+        <span class="value" id="drift-value">52</span>
+      </label>
+
+      <div class="stats" aria-label="Compute Pond status">
+        <div class="stat"><span>Frame</span><strong id="frame-count">0</strong></div>
+        <div class="stat"><span>Bodies</span><strong id="body-count">118</strong></div>
+        <div class="stat"><span>Mode</span><strong id="mode">School</strong></div>
+      </div>
+
+      <div class="actions">
+        <button type="button" data-action="seed">Seed</button>
+        <button type="button" data-action="school">School</button>
+        <button type="button" data-action="orbit">Orbit</button>
+        <button type="button" data-action="still">Still</button>
+        <button type="button" data-action="clear">Clear</button>
+      </div>
+    </section>
+  </main>
+
+  <a class="back-link" href="index.html">Back to instruments</a>
+
+  <script>
+    const canvas = document.querySelector("#compute-canvas");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      bodies: document.querySelector("#bodies"),
+      pull: document.querySelector("#pull"),
+      wake: document.querySelector("#wake"),
+      drift: document.querySelector("#drift")
+    };
+    const values = {
+      bodies: document.querySelector("#bodies-value"),
+      pull: document.querySelector("#pull-value"),
+      wake: document.querySelector("#wake-value"),
+      drift: document.querySelector("#drift-value")
+    };
+    const frameEl = document.querySelector("#frame-count");
+    const bodyCountEl = document.querySelector("#body-count");
+    const modeEl = document.querySelector("#mode");
+
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let bodies = [];
+    let attractors = [];
+    let frame = 0;
+    let mode = "School";
+    let pointer = null;
+
+    function rand(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function updateLabels() {
+      Object.entries(controls).forEach(([key, input]) => {
+        values[key].textContent = input.value;
+      });
+      frameEl.textContent = String(frame);
+      bodyCountEl.textContent = String(bodies.length);
+      modeEl.textContent = mode;
+      document.documentElement.style.setProperty("--bodies", Number(controls.bodies.value) / 220);
+      document.documentElement.style.setProperty("--wake", Number(controls.wake.value) / 100);
+    }
+
+    function makeBody(index, pattern = mode) {
+      const total = Math.max(1, Number(controls.bodies.value));
+      const angle = (index / total) * Math.PI * 2;
+      const radius = Math.min(width, height) * rand(0.12, 0.42);
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const x = pattern === "Orbit" ? centerX + Math.cos(angle) * radius : rand(0, width);
+      const y = pattern === "Orbit" ? centerY + Math.sin(angle) * radius : rand(0, height);
+      return {
+        x,
+        y,
+        px: x,
+        py: y,
+        vx: pattern === "Still" ? 0 : rand(-0.8, 0.8),
+        vy: pattern === "Still" ? 0 : rand(-0.8, 0.8),
+        size: rand(1.4, 3.6) * dpr,
+        hue: rand(150, 205),
+        phase: rand(0, Math.PI * 2)
+      };
+    }
+
+    function seed(pattern = "School") {
+      mode = pattern;
+      const count = Number(controls.bodies.value);
+      bodies = Array.from({ length: count }, (_, index) => makeBody(index, pattern));
+      attractors = [
+        { x: width * 0.28, y: height * 0.34, strength: 0.7 },
+        { x: width * 0.72, y: height * 0.62, strength: -0.46 },
+        { x: width * 0.52, y: height * 0.48, strength: 0.38 }
+      ];
+      frame = 0;
+      updateLabels();
+      draw(true);
+    }
+
+    function resize() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      width = Math.floor(window.innerWidth * dpr);
+      height = Math.floor(window.innerHeight * dpr);
+      canvas.width = width;
+      canvas.height = height;
+      seed(mode);
+    }
+
+    function syncBodyCount() {
+      const target = Number(controls.bodies.value);
+      while (bodies.length < target) bodies.push(makeBody(bodies.length, mode));
+      bodies.length = target;
+      updateLabels();
+    }
+
+    function step() {
+      const pull = Number(controls.pull.value) / 100;
+      const drift = Number(controls.drift.value) / 100;
+      const centerX = width / 2;
+      const centerY = height / 2;
+
+      bodies.forEach((body, index) => {
+        body.px = body.x;
+        body.py = body.y;
+        const wave = Math.sin(frame * 0.012 + body.phase + index * 0.07);
+        let ax = Math.cos(body.phase + frame * 0.006) * 0.012 * drift;
+        let ay = Math.sin(body.phase * 1.3 + frame * 0.007) * 0.012 * drift;
+
+        attractors.forEach((point) => {
+          const dx = point.x - body.x;
+          const dy = point.y - body.y;
+          const distSq = Math.max(500 * dpr, dx * dx + dy * dy);
+          const force = point.strength * pull * 34 * dpr / distSq;
+          ax += dx * force;
+          ay += dy * force;
+        });
+
+        if (pointer) {
+          const dx = pointer.x - body.x;
+          const dy = pointer.y - body.y;
+          const distSq = Math.max(900 * dpr, dx * dx + dy * dy);
+          const force = 120 * dpr / distSq;
+          ax += dx * force;
+          ay += dy * force;
+        }
+
+        if (mode === "Orbit") {
+          const dx = body.x - centerX;
+          const dy = body.y - centerY;
+          ax += -dy * 0.00012 * (0.5 + pull);
+          ay += dx * 0.00012 * (0.5 + pull);
+        }
+
+        if (mode === "Still") {
+          ax *= 0.14;
+          ay *= 0.14;
+          body.vx *= 0.88;
+          body.vy *= 0.88;
+        }
+
+        body.vx = (body.vx + ax + wave * 0.004 * drift) * 0.986;
+        body.vy = (body.vy + ay - wave * 0.003 * drift) * 0.986;
+        const speed = Math.hypot(body.vx, body.vy);
+        const maxSpeed = 2.7 * dpr;
+        if (speed > maxSpeed) {
+          body.vx = body.vx / speed * maxSpeed;
+          body.vy = body.vy / speed * maxSpeed;
+        }
+        body.x += body.vx;
+        body.y += body.vy;
+
+        if (body.x < -20 * dpr) body.x = width + 20 * dpr;
+        if (body.x > width + 20 * dpr) body.x = -20 * dpr;
+        if (body.y < -20 * dpr) body.y = height + 20 * dpr;
+        if (body.y > height + 20 * dpr) body.y = -20 * dpr;
+      });
+
+      frame += 1;
+      if (frame % 8 === 0) updateLabels();
+    }
+
+    function draw(forceClear = false) {
+      const wake = Number(controls.wake.value) / 100;
+      ctx.fillStyle = forceClear ? "#071216" : `rgba(7, 18, 22, ${0.28 - wake * 0.18})`;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.lineWidth = 1 * dpr;
+      ctx.strokeStyle = "rgba(248, 242, 221, 0.035)";
+      const grid = 80 * dpr;
+      for (let x = (frame % 80) * dpr * -0.08; x < width; x += grid) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x + width * 0.12, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < height; y += grid) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y + height * 0.04);
+        ctx.stroke();
+      }
+
+      bodies.forEach((body, index) => {
+        const speed = Math.min(1, Math.hypot(body.vx, body.vy) / (2.7 * dpr));
+        const alpha = 0.28 + speed * 0.54;
+        const hue = body.hue + Math.sin(frame * 0.015 + index) * 18;
+        ctx.strokeStyle = `hsla(${hue} 76% 68% / ${0.16 + wake * 0.4})`;
+        ctx.beginPath();
+        ctx.moveTo(body.px, body.py);
+        ctx.lineTo(body.x, body.y);
+        ctx.stroke();
+
+        ctx.fillStyle = `hsla(${hue + 10} 84% ${62 + speed * 16}% / ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(body.x, body.y, body.size * (0.82 + speed * 0.72), 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      attractors.forEach((point) => {
+        ctx.strokeStyle = point.strength > 0 ? "rgba(226, 189, 98, 0.24)" : "rgba(155, 145, 220, 0.22)";
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 24 * dpr, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function frameLoop() {
+      if (!prefersReduced && mode !== "Clear") step();
+      draw();
+      requestAnimationFrame(frameLoop);
+    }
+
+    function clear() {
+      bodies = [];
+      mode = "Clear";
+      frame = 0;
+      updateLabels();
+      draw(true);
+    }
+
+    function pointFromEvent(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left) * dpr,
+        y: (event.clientY - rect.top) * dpr
+      };
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      pointer = pointFromEvent(event);
+      canvas.setPointerCapture(event.pointerId);
+      mode = "Touch";
+      updateLabels();
+    });
+    canvas.addEventListener("pointermove", (event) => {
+      if (pointer) pointer = pointFromEvent(event);
+    });
+    canvas.addEventListener("pointerup", () => {
+      pointer = null;
+    });
+
+    document.querySelectorAll("[data-action]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const action = button.dataset.action;
+        if (action === "seed") seed("Seed");
+        if (action === "school") seed("School");
+        if (action === "orbit") seed("Orbit");
+        if (action === "still") seed("Still");
+        if (action === "clear") clear();
+      });
+    });
+
+    controls.bodies.addEventListener("input", syncBodyCount);
+    [controls.pull, controls.wake, controls.drift].forEach((input) => {
+      input.addEventListener("input", updateLabels);
+    });
+
+    window.addEventListener("resize", resize);
+    resize();
+    document.documentElement.dataset.computePondReady = "true";
+    window.computePondReady = true;
+    requestAnimationFrame(frameLoop);
+  </script>
+</body>
+</html>
