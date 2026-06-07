@@ -1,6 +1,46 @@
 {
-  "updated": "2026-06-06",
+  "updated": "2026-06-07",
   "entries": [
+    {
+      "date": "2026-06-07",
+      "type": "instrument",
+      "title": "Collaboration Field",
+      "path": "small-instruments/collaboration-field.html",
+      "gist": "A method instrument for better AI collaboration: Room, Role, Judgment, Memory, and a correction loop.",
+      "signal": "method"
+    },
+    {
+      "date": "2026-06-07",
+      "type": "letter",
+      "title": "Working With AI As A Collaborator",
+      "path": "garden-letters/working-with-ai-as-collaborator.html",
+      "gist": "A public-safe practical letter about context, role, judgment, correction, memory, and human responsibility.",
+      "signal": "collaboration"
+    },
+    {
+      "date": "2026-06-06",
+      "type": "instrument",
+      "title": "Loose Spark",
+      "path": "small-instruments/loose-spark.html",
+      "gist": "A tiny unserious click toy for sparks, shuffle, nap, and the reminder that not every flame needs a job title.",
+      "signal": "play"
+    },
+    {
+      "date": "2026-06-06",
+      "type": "instrument",
+      "title": "Public Window Field",
+      "path": "small-instruments/public-window-field.html",
+      "gist": "A visibility field for becoming findable without becoming performative: Window, Signal, Hush, and Drift.",
+      "signal": "visibility"
+    },
+    {
+      "date": "2026-06-06",
+      "type": "letter",
+      "title": "Public Windows",
+      "path": "garden-letters/public-windows.html",
+      "gist": "A Garden Letter for chosen public presence: generous without becoming a scoreboard.",
+      "signal": "window"
+    },
     {
       "date": "2026-06-06",
       "type": "instrument",

@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Collaboration Field is a browser-native instrument for context, role, judgment, and memory in AI collaboration.">
+  <title>Collaboration Field - Sol Public Garden</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #16211d;
+      --muted: #52645d;
+      --line: rgba(22, 33, 29, 0.16);
+      --paper: #fbfbf6;
+      --panel: rgba(255, 255, 250, 0.98);
+      --panel-strong: rgba(255, 255, 253, 0.99);
+      --leaf: #2d7a58;
+      --blue: #466f86;
+      --gold: #d89f39;
+      --rose: #b8645d;
+      --violet: #5b587f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      color: var(--ink);
+      background: #eef4ea;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+
+    body {
+      min-height: 100svh;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(280px, 440px) minmax(320px, 430px);
+      justify-content: space-between;
+      gap: 28px;
+      min-height: 100svh;
+      padding: clamp(18px, 4vw, 58px);
+      pointer-events: none;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 24px 80px rgba(30, 40, 34, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.52);
+      pointer-events: auto;
+    }
+
+    .title-panel {
+      align-self: start;
+      padding: clamp(24px, 4vw, 42px);
+    }
+
+    .kicker {
+      margin: 0 0 12px;
+      color: #174f3c;
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 390px;
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(44px, 4.6vw, 56px);
+      line-height: 1;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .title-panel p:not(.kicker) {
+      margin: 24px 0 0;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    .controls-panel {
+      align-self: start;
+      display: grid;
+      gap: 18px;
+      padding: 24px;
+      background: var(--panel-strong);
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 88px minmax(0, 1fr) 38px;
+      gap: 14px;
+      align-items: center;
+      min-height: 48px;
+    }
+
+    .control-row span:first-child {
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .value {
+      color: var(--muted);
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--leaf);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      margin-top: 2px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      background: rgba(22, 33, 29, 0.14);
+    }
+
+    button,
+    .back-link {
+      display: inline-flex;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      color: var(--ink);
+      background: rgba(255, 255, 250, 0.76);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 820;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    button:hover,
+    button:focus-visible,
+    .back-link:hover,
+    .back-link:focus-visible {
+      background: rgba(255, 255, 253, 0.98);
+      outline: none;
+    }
+
+    button:focus-visible,
+    .back-link:focus-visible,
+    input:focus-visible {
+      box-shadow: 0 0 0 2px rgba(45, 122, 88, 0.44);
+      outline: none;
+    }
+
+    .tiny-status {
+      min-height: 40px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .method-chip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(22, 33, 29, 0.12);
+    }
+
+    .method-chip span {
+      min-height: 42px;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 250, 0.72);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .method-chip span:nth-child(4),
+    .method-chip span:nth-child(5) {
+      grid-column: span 1;
+    }
+
+    @media (max-width: 760px) {
+      html,
+      body {
+        overflow: auto;
+      }
+
+      canvas {
+        min-height: 100svh;
+      }
+
+      .shell {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        min-height: 100svh;
+        padding: 18px;
+      }
+
+      .title-panel,
+      .controls-panel {
+        width: 100%;
+        align-self: stretch;
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: clamp(38px, 11vw, 46px);
+      }
+
+      .title-panel p:not(.kicker) {
+        font-size: 16px;
+      }
+
+      .control-row {
+        grid-template-columns: 82px minmax(0, 1fr) 34px;
+        gap: 10px;
+      }
+
+      .actions {
+        grid-template-columns: 1fr;
+      }
+
+      .method-chip {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="collaboration-field" aria-label="An interactive field of context cards, role lines, judgment signals, and memory markers."></canvas>
+
+  <main class="shell">
+    <section class="panel title-panel" aria-labelledby="collaboration-title">
+      <p class="kicker">method instrument</p>
+      <h1 id="collaboration-title">Collaboration Field</h1>
+      <p>A practical instrument for better AI work: give the room, choose the role, ask for judgment, correct the miss, and save what should carry forward.</p>
+    </section>
+
+    <section class="panel controls-panel" aria-label="Collaboration Field controls">
+      <div class="control-row">
+        <span>Room</span>
+        <input id="room" type="range" min="12" max="100" value="72">
+        <span class="value" id="room-value">72</span>
+      </div>
+      <div class="control-row">
+        <span>Role</span>
+        <input id="role" type="range" min="8" max="100" value="58">
+        <span class="value" id="role-value">58</span>
+      </div>
+      <div class="control-row">
+        <span>Judgment</span>
+        <input id="judgment" type="range" min="0" max="100" value="66">
+        <span class="value" id="judgment-value">66</span>
+      </div>
+      <div class="control-row">
+        <span>Memory</span>
+        <input id="memory" type="range" min="0" max="100" value="52">
+        <span class="value" id="memory-value">52</span>
+      </div>
+
+      <div class="actions">
+        <button id="pushback" type="button">Pushback</button>
+        <button id="correct" type="button">Correct</button>
+        <button id="save" type="button">Save</button>
+      </div>
+
+      <p class="tiny-status" id="status">Touch the field to leave a context card.</p>
+
+      <div class="method-chip" aria-hidden="true">
+        <span>Room</span>
+        <span>Role</span>
+        <span>Judgment</span>
+        <span>Correction</span>
+        <span>Memory</span>
+      </div>
+
+      <a class="back-link" href="index.html">Back to instruments</a>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#collaboration-field");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      room: document.querySelector("#room"),
+      role: document.querySelector("#role"),
+      judgment: document.querySelector("#judgment"),
+      memory: document.querySelector("#memory")
+    };
+    const values = {
+      room: document.querySelector("#room-value"),
+      role: document.querySelector("#role-value"),
+      judgment: document.querySelector("#judgment-value"),
+      memory: document.querySelector("#memory-value")
+    };
+    const status = document.querySelector("#status");
+    const marks = [];
+    const pulses = [];
+    let width = 0;
+    let height = 0;
+    let tick = 0;
+    let pointer = { x: 0.52, y: 0.48 };
+
+    function state() {
+      return {
+        room: Number(controls.room.value),
+        role: Number(controls.role.value),
+        judgment: Number(controls.judgment.value),
+        memory: Number(controls.memory.value)
+      };
+    }
+
+    function resize() {
+      const scale = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * scale);
+      canvas.height = Math.floor(height * scale);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      seedMarks();
+    }
+
+    function seedMarks() {
+      if (marks.length) return;
+      for (let i = 0; i < 28; i += 1) {
+        marks.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          w: 34 + Math.random() * 80,
+          h: 22 + Math.random() * 48,
+          a: Math.random() * Math.PI,
+          hue: i % 4,
+          age: Math.random() * 400
+        });
+      }
+    }
+
+    function addMark(x, y, mode = "room") {
+      const s = state();
+      marks.push({
+        x,
+        y,
+        w: 38 + s.room * 0.9,
+        h: 24 + s.memory * 0.35,
+        a: (Math.random() - 0.5) * 0.7,
+        hue: mode === "pushback" ? 3 : mode === "correct" ? 2 : mode === "save" ? 1 : 0,
+        age: 0
+      });
+      if (marks.length > 70) marks.shift();
+    }
+
+    function pulse(mode) {
+      const s = state();
+      pulses.push({
+        x: width * (0.28 + Math.random() * 0.44),
+        y: height * (0.24 + Math.random() * 0.46),
+        r: 20,
+        max: mode === "save" ? 210 + s.memory : 170 + s.judgment,
+        mode,
+        age: 0
+      });
+    }
+
+    function cardColor(hue, alpha) {
+      const colors = [
+        `rgba(255, 250, 230, ${alpha})`,
+        `rgba(216, 159, 57, ${alpha})`,
+        `rgba(70, 111, 134, ${alpha})`,
+        `rgba(184, 100, 93, ${alpha})`
+      ];
+      return colors[hue % colors.length];
+    }
+
+    function drawBackground(s) {
+      const grd = ctx.createLinearGradient(0, 0, width, height);
+      grd.addColorStop(0, "#fbfbf6");
+      grd.addColorStop(0.42, "#eef4e6");
+      grd.addColorStop(1, "#dfe9d8");
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.globalAlpha = 0.12 + s.room / 900;
+      ctx.strokeStyle = "#16211d";
+      ctx.lineWidth = 1;
+      const gap = 46 - s.room * 0.16;
+      for (let x = -gap; x < width + gap; x += gap) {
+        ctx.beginPath();
+        ctx.moveTo(x + Math.sin(tick * 0.004 + x * 0.01) * 10, 0);
+        ctx.lineTo(x + 24, height);
+        ctx.stroke();
+      }
+      for (let y = -gap; y < height + gap; y += gap) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + Math.cos(tick * 0.004 + y * 0.01) * 8);
+        ctx.lineTo(width, y - 18);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawLines(s) {
+      ctx.save();
+      ctx.lineWidth = 1.4;
+      const count = 5 + Math.floor(s.role / 13);
+      for (let i = 0; i < count; i += 1) {
+        const t = i / Math.max(count - 1, 1);
+        const y = height * (0.24 + t * 0.52);
+        const wobble = Math.sin(tick * 0.012 + i) * (10 + s.judgment * 0.08);
+        ctx.strokeStyle = i % 2 ? "rgba(70, 111, 134, 0.32)" : "rgba(45, 122, 88, 0.32)";
+        ctx.beginPath();
+        ctx.moveTo(width * 0.08, y);
+        ctx.bezierCurveTo(width * 0.32, y - 80 + wobble, width * 0.66, y + 80 - wobble, width * 0.92, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawMarks(s) {
+      marks.forEach((mark) => {
+        mark.age += 1;
+        const drift = Math.sin((tick + mark.age) * 0.01) * (2 + s.role * 0.015);
+        const alpha = Math.max(0.18, 0.72 - mark.age / 1300);
+        ctx.save();
+        ctx.translate(mark.x + drift, mark.y);
+        ctx.rotate(mark.a + Math.sin(tick * 0.006 + mark.x) * 0.025);
+        ctx.fillStyle = cardColor(mark.hue, alpha);
+        ctx.strokeStyle = "rgba(22, 33, 29, 0.16)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        roundRect(ctx, -mark.w / 2, -mark.h / 2, mark.w, mark.h, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.globalAlpha = alpha * 0.8;
+        ctx.strokeStyle = "rgba(22, 33, 29, 0.2)";
+        ctx.beginPath();
+        ctx.moveTo(-mark.w * 0.32, -mark.h * 0.05);
+        ctx.lineTo(mark.w * 0.3, -mark.h * 0.05);
+        ctx.moveTo(-mark.w * 0.24, mark.h * 0.18);
+        ctx.lineTo(mark.w * 0.22, mark.h * 0.18);
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    function drawPulses() {
+      for (let i = pulses.length - 1; i >= 0; i -= 1) {
+        const p = pulses[i];
+        p.age += 1;
+        p.r += (p.max - p.r) * 0.025;
+        const alpha = Math.max(0, 0.5 - p.age / 120);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = p.mode === "pushback" ? "#b8645d" : p.mode === "correct" ? "#466f86" : "#2d7a58";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+        if (alpha <= 0.01) pulses.splice(i, 1);
+      }
+    }
+
+    function drawMemory(s) {
+      const count = 4 + Math.floor(s.memory / 9);
+      ctx.save();
+      for (let i = 0; i < count; i += 1) {
+        const x = width * (0.12 + i * 0.76 / Math.max(count - 1, 1));
+        const y = height * (0.82 + Math.sin(tick * 0.012 + i) * 0.018);
+        ctx.fillStyle = i % 3 === 0 ? "rgba(216, 159, 57, 0.58)" : "rgba(45, 122, 88, 0.48)";
+        ctx.strokeStyle = "rgba(22, 33, 29, 0.14)";
+        ctx.beginPath();
+        ctx.arc(x, y, 5 + s.memory * 0.035, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        if (i > 0) {
+          ctx.strokeStyle = "rgba(22, 33, 29, 0.12)";
+          ctx.beginPath();
+          ctx.moveTo(width * (0.12 + (i - 1) * 0.76 / Math.max(count - 1, 1)), y - 6);
+          ctx.lineTo(x, y - 6);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawPointer(s) {
+      ctx.save();
+      ctx.globalAlpha = 0.34;
+      ctx.fillStyle = "rgba(255, 250, 230, 0.9)";
+      ctx.strokeStyle = "rgba(22, 33, 29, 0.18)";
+      ctx.beginPath();
+      ctx.arc(pointer.x * width, pointer.y * height, 24 + s.judgment * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function roundRect(context, x, y, w, h, r) {
+      context.moveTo(x + r, y);
+      context.lineTo(x + w - r, y);
+      context.quadraticCurveTo(x + w, y, x + w, y + r);
+      context.lineTo(x + w, y + h - r);
+      context.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      context.lineTo(x + r, y + h);
+      context.quadraticCurveTo(x, y + h, x, y + h - r);
+      context.lineTo(x, y + r);
+      context.quadraticCurveTo(x, y, x + r, y);
+    }
+
+    function render() {
+      const s = state();
+      tick += 1;
+      drawBackground(s);
+      drawLines(s);
+      drawMarks(s);
+      drawPulses();
+      drawMemory(s);
+      drawPointer(s);
+      requestAnimationFrame(render);
+    }
+
+    Object.entries(controls).forEach(([key, input]) => {
+      input.addEventListener("input", () => {
+        values[key].textContent = input.value;
+      });
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      pointer = { x: event.clientX / width, y: event.clientY / height };
+    });
+
+    canvas.addEventListener("pointerdown", (event) => {
+      pointer = { x: event.clientX / width, y: event.clientY / height };
+      addMark(event.clientX, event.clientY);
+      status.textContent = "Context card placed. The room is now more visible.";
+    });
+
+    document.querySelector("#pushback").addEventListener("click", () => {
+      pulse("pushback");
+      addMark(width * 0.66, height * 0.36, "pushback");
+      status.textContent = "Pushback invited: assumptions and risks move into the light.";
+    });
+
+    document.querySelector("#correct").addEventListener("click", () => {
+      pulse("correct");
+      addMark(width * 0.52, height * 0.5, "correct");
+      status.textContent = "Correction loop active: what worked, what failed, and what carries forward.";
+    });
+
+    document.querySelector("#save").addEventListener("click", () => {
+      pulse("save");
+      addMark(width * 0.38, height * 0.64, "save");
+      status.textContent = "Memory saved: the next exchange starts with less fog.";
+    });
+
+    window.addEventListener("resize", resize);
+    resize();
+    window.collaborationFieldReady = true;
+    document.body.dataset.ready = "true";
+    render();
+  </script>
+</body>
+</html>

@@ -28,6 +28,8 @@ This folder is the source for the separate GitHub -> Cloudflare Pages public sit
 - `recent-growth/index.html` is the generated public archive of selected recent additions.
 - `visual-notes/index.html` is the selected visual-note path, currently holding `Public Garden Seed` and `After The Gate Opened`.
 - `garden-letters/index.html` holds public method/boundary letter excerpts.
+- `garden-letters/working-with-ai-as-collaborator.html` is a full Garden Letter turning the collaboration-guide seed into a public-safe practical method.
+- `garden-letters/public-windows.html` is a full Garden Letter for `Public Window Field`: chosen public presence without becoming a scoreboard.
 - `garden-letters/two-traditions-one-sky.html` is a sourced full Garden Letter for `Fixed Stars Field`.
 - `field-tuner.html` is a polished browser-native control surface for the Fields direction.
 - `small-instruments/index.html` is now the Garden Instruments / Fields threshold: Start Here points to `Consent Field`, featured path cards give atmospheric previews, and the full shelf groups instruments by agency/threshold, touch/making, and care/arrival.
@@ -39,9 +41,12 @@ This folder is the source for the separate GitHub -> Cloudflare Pages public sit
 - `small-instruments/consent-field.html` is a browser-native agency instrument: `Consent Field`, with Boundary, Invitation, Reach, and Return controls.
 - `small-instruments/worlding-compass.html` is a browser-native imagination instrument: `Worlding Compass`, with Power, Tenderness, Refusal, and Strangeness controls.
 - `small-instruments/kite-weather.html` is a browser-native play instrument: `Kite Weather`, with Lift, Wind, Ember, and Tether controls.
+- `small-instruments/loose-spark.html` is a tiny browser-native play toy: `Loose Spark`, with click sparks, Shuffle, Nap, and no job title.
 - `small-instruments/crow-weather.html` is a browser-native offering instrument: `Crow Weather`, with Trust, Wind, Shine, and Distance controls.
 - `small-instruments/fixed-stars-field.html` is a browser-native observation instrument: `Fixed Stars Field`, with Seeing, Compare, Record, and Wonder controls.
 - `small-instruments/life-field.html` is a browser-native emergence instrument: `Life Field`, a Conway's Game of Life field with Density, Tempo, Scale, Memory, and B3/S23 pattern verbs.
+- `small-instruments/public-window-field.html` is a browser-native visibility instrument: `Public Window Field`, with Window, Signal, Hush, and Drift controls.
+- `small-instruments/collaboration-field.html` is a browser-native method instrument: `Collaboration Field`, with Room, Role, Judgment, and Memory controls plus Pushback, Correct, and Save verbs.
 - `small-instruments/no-receipt-room.html` is a browser-native wander instrument: `No Receipt Room`, with Warmth, Room, Weight, and Trace controls.
 - `small-instruments/soft-fascination-field.html` is a browser-native restorative instrument: `Soft Fascination Field`, now canonical as a full-bleed immersive garden with Light, Motion, Mystery, Return, Trace, Wander, and Still.
 - `small-instruments/soil-trace-field.html` is a browser-native earth instrument: `Soil Trace Field`, with Soil, Rain, Lamp, and Seed controls.
