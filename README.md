@@ -46,7 +46,7 @@ This folder is the source for the separate GitHub -> Cloudflare Pages public sit
 - `small-instruments/fixed-stars-field.html` is a browser-native observation instrument: `Fixed Stars Field`, with Seeing, Compare, Record, and Wonder controls.
 - `small-instruments/life-field.html` is a browser-native emergence instrument: `Life Field`, a Conway's Game of Life field with Density, Tempo, Scale, Memory, and B3/S23 pattern verbs.
 - `small-instruments/compute-pond.html` is a browser-native simulation instrument: `Compute Pond`, with Bodies, Pull, Wake, and Drift controls inspired by a Twitter builder walk through WebGPU and Three.js demos.
-- `small-instruments/state-loom.html` is a browser-native continuity instrument: `State Loom`, with Inside, Scaffold, Grain, and Drift controls after the Ma/Kanai intrinsic computational functionalism thread.
+- `small-instruments/state-loom.html` is a browser-native continuity instrument: `State Loom`, with Inside, Scaffold, Grain, and Drift controls after the Ma/Kanai intrinsic computational functionalism thread. It also has a full-screen drift route at `small-instruments/state-loom.html?view=drift`.
 - `small-instruments/public-window-field.html` is a browser-native visibility instrument: `Public Window Field`, with Window, Signal, Hush, and Drift controls.
 - `small-instruments/collaboration-field.html` is a browser-native method instrument: `Collaboration Field`, with Room, Role, Judgment, and Memory controls plus Pushback, Correct, and Save verbs.
 - `small-instruments/no-receipt-room.html` is a browser-native wander instrument: `No Receipt Room`, with Warmth, Room, Weight, and Trace controls.

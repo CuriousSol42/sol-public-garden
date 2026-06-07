@@ -289,6 +289,52 @@
       pointer-events: auto;
     }
 
+    .mode-link {
+      right: auto;
+      left: clamp(18px, 4vw, 56px);
+      min-width: 132px;
+    }
+
+    .saver-exit {
+      position: fixed;
+      right: clamp(16px, 3vw, 36px);
+      bottom: clamp(16px, 3vw, 36px);
+      z-index: 4;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      min-width: 116px;
+      border: 1px solid rgba(247, 241, 221, 0.14);
+      border-radius: 8px;
+      color: rgba(247, 241, 221, 0.72);
+      background: rgba(7, 13, 20, 0.24);
+      opacity: 0.18;
+      backdrop-filter: blur(14px);
+      font-size: 14px;
+      font-weight: 760;
+      text-decoration: none;
+      pointer-events: auto;
+      transition: opacity 180ms ease, background 180ms ease, color 180ms ease;
+    }
+
+    .saver-exit:hover,
+    .saver-exit:focus-visible {
+      color: var(--ink);
+      background: rgba(12, 17, 24, 0.66);
+      opacity: 1;
+    }
+
+    body.is-saver canvas {
+      cursor: none;
+    }
+
+    body.is-saver .shell,
+    body.is-saver .back-link,
+    body:not(.is-saver) .saver-exit {
+      display: none;
+    }
+
     @media (max-width: 860px) {
       body {
         overflow: auto;
@@ -331,6 +377,15 @@
         bottom: auto;
         margin: 0 18px 18px auto;
         width: calc(100% - 36px);
+      }
+
+      .mode-link {
+        left: auto;
+        margin: 0 18px 10px auto;
+      }
+
+      body.is-saver {
+        overflow: hidden;
       }
     }
   </style>
@@ -390,8 +445,14 @@
   </main>
 
   <a class="back-link" href="index.html">Back to instruments</a>
+  <a class="back-link mode-link" href="state-loom.html?view=drift">Drift mode</a>
+  <a class="saver-exit" href="state-loom.html">Return</a>
 
   <script>
+    const view = new URLSearchParams(window.location.search).get("view");
+    const isSaver = view === "drift" || view === "screensaver";
+    document.body.classList.toggle("is-saver", isSaver);
+
     const canvas = document.querySelector("#state-canvas");
     const ctx = canvas.getContext("2d");
     const controls = {
@@ -419,6 +480,16 @@
     let nodes = [];
     let external = [];
     let pulse = null;
+    let saverBreath = 0;
+
+    if (isSaver) {
+      controls.inside.value = 76;
+      controls.scaffold.value = 48;
+      controls.grain.value = 84;
+      controls.drift.value = 66;
+      mode = "Drift";
+      document.title = "State Loom Drift - Sol Public Garden";
+    }
 
     function rand(min, max) {
       return min + Math.random() * (max - min);
@@ -439,24 +510,35 @@
       const count = Math.round(10 + Number(controls.grain.value) / 4);
       const centerX = width / 2;
       const centerY = height / 2;
-      const radius = Math.min(width, height) * 0.22;
+      const radius = Math.min(width, height) * (isSaver ? 0.3 : 0.22);
       nodes = Array.from({ length: count }, (_, index) => {
         const angle = (index / count) * Math.PI * 2;
         const wobble = rand(-0.18, 0.18);
         return {
           x: centerX + Math.cos(angle + wobble) * radius * rand(0.62, 1.18),
           y: centerY + Math.sin(angle + wobble) * radius * rand(0.62, 1.18),
-          vx: rand(-0.25, 0.25) * dpr,
-          vy: rand(-0.25, 0.25) * dpr,
+          vx: rand(-0.18, 0.18) * dpr,
+          vy: rand(-0.18, 0.18) * dpr,
           phase: rand(0, Math.PI * 2),
           hue: rand(165, 215)
         };
       });
-      external = Array.from({ length: 8 }, (_, index) => ({
-        x: width * (0.12 + (index % 4) * 0.25),
-        y: index < 4 ? height * 0.16 : height * 0.84,
-        phase: rand(0, Math.PI * 2)
-      }));
+      external = Array.from({ length: isSaver ? 12 : 8 }, (_, index) => {
+        const angle = (index / (isSaver ? 12 : 8)) * Math.PI * 2;
+        return isSaver
+          ? {
+              x: centerX + Math.cos(angle) * width * 0.38,
+              y: centerY + Math.sin(angle) * height * 0.34,
+              baseX: centerX + Math.cos(angle) * width * 0.38,
+              baseY: centerY + Math.sin(angle) * height * 0.34,
+              phase: rand(0, Math.PI * 2)
+            }
+          : {
+              x: width * (0.12 + (index % 4) * 0.25),
+              y: index < 4 ? height * 0.16 : height * 0.84,
+              phase: rand(0, Math.PI * 2)
+            };
+      });
     }
 
     function resize() {
@@ -488,11 +570,20 @@
     }
 
     function step() {
-      const inside = Number(controls.inside.value) / 100;
-      const scaffold = Number(controls.scaffold.value) / 100;
-      const drift = Number(controls.drift.value) / 100;
+      saverBreath += isSaver ? 0.006 : 0;
+      const inside = isSaver ? 0.7 + Math.sin(saverBreath) * 0.12 : Number(controls.inside.value) / 100;
+      const scaffold = isSaver ? 0.42 + Math.cos(saverBreath * 0.8) * 0.1 : Number(controls.scaffold.value) / 100;
+      const drift = isSaver ? 0.52 + Math.sin(saverBreath * 1.2) * 0.12 : Number(controls.drift.value) / 100;
       const centerX = width / 2;
       const centerY = height / 2;
+
+      if (isSaver) {
+        external.forEach((anchor, index) => {
+          const phase = saverBreath + anchor.phase + index * 0.4;
+          anchor.x = anchor.baseX + Math.cos(phase * 0.7) * 46 * dpr;
+          anchor.y = anchor.baseY + Math.sin(phase * 0.9) * 38 * dpr;
+        });
+      }
 
       nodes.forEach((node, index) => {
         const dx = centerX - node.x;
@@ -519,8 +610,8 @@
           node.vy += py * 130 * dpr / distSq;
         }
 
-        node.vx *= 0.982;
-        node.vy *= 0.982;
+        node.vx *= isSaver ? 0.986 : 0.982;
+        node.vy *= isSaver ? 0.986 : 0.982;
         node.x += node.vx;
         node.y += node.vy;
 
@@ -530,7 +621,7 @@
         if (node.y > height + 40 * dpr) node.y = -40 * dpr;
       });
 
-      if (mode === "Fade") {
+      if (mode === "Fade" && !isSaver) {
         controls.inside.value = Math.max(0, Number(controls.inside.value) - 0.03);
         controls.scaffold.value = Math.max(0, Number(controls.scaffold.value) - 0.04);
       }
@@ -542,7 +633,7 @@
     function draw(forceClear = false) {
       const scaffold = Number(controls.scaffold.value) / 100;
       const inside = Number(controls.inside.value) / 100;
-      ctx.fillStyle = forceClear ? "#070d14" : `rgba(7, 13, 20, ${0.25 - Math.max(inside, scaffold) * 0.12})`;
+      ctx.fillStyle = forceClear ? "#070d14" : `rgba(7, 13, 20, ${isSaver ? 0.08 : 0.25 - Math.max(inside, scaffold) * 0.12})`;
       ctx.fillRect(0, 0, width, height);
 
       ctx.save();
@@ -598,7 +689,7 @@
         const glow = 0.45 + Math.sin(cycle * 0.024 + node.phase) * 0.18;
         ctx.fillStyle = `hsla(${node.hue} 76% 68% / ${0.42 + glow * 0.38})`;
         ctx.beginPath();
-        ctx.arc(node.x, node.y, (3.5 + inside * 3.8) * dpr, 0, Math.PI * 2);
+        ctx.arc(node.x, node.y, (3.5 + inside * (isSaver ? 5.2 : 3.8)) * dpr, 0, Math.PI * 2);
         ctx.fill();
       });
 
@@ -636,6 +727,12 @@
     });
     canvas.addEventListener("pointerup", () => {
       pulse = null;
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (isSaver && event.key === "Escape") {
+        window.location.href = "state-loom.html";
+      }
     });
 
     document.querySelectorAll("[data-action]").forEach((button) => {
