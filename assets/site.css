@@ -1096,7 +1096,7 @@ blockquote {
 
 .recent-growth-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
 }
 
@@ -1112,6 +1112,7 @@ blockquote {
     linear-gradient(145deg, rgba(255, 255, 252, 0.92), rgba(238, 246, 236, 0.72));
   color: var(--door-ink);
   text-decoration: none;
+  overflow: hidden;
 }
 
 .growth-card:hover {
@@ -1131,8 +1132,9 @@ blockquote {
 .growth-card strong {
   margin-top: 24px;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(25px, 2.4vw, 34px);
-  line-height: 0.98;
+  font-size: clamp(24px, 2vw, 30px);
+  line-height: 1.02;
+  overflow-wrap: anywhere;
 }
 
 .growth-card span:last-child {
@@ -1140,6 +1142,7 @@ blockquote {
   color: var(--door-muted);
   font-size: 14px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .growth-archive-page {
